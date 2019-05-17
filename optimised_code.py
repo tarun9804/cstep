@@ -87,10 +87,10 @@ def ZoneTime_SolarAngles_(Location_Latitude, Location_Longitude, Module_Tilt, \
         #ST_Ang_Declination_r = np.deg2rad(Hour['ST_Ang_Declination'])
         ST_Ang_Declination_r = np.deg2rad(ST_Ang_Declination)
 
-        #temp1 = np.deg2rad(Hour['ST_Ang_Hour_f'])
-        temp1 = np.deg2rad(ST_Ang_Hour_f)
-        #Hour['ST_Ang_Sol_Zenith'] = np.rad2deg(np.arccos(np.cos(Location_Latitude_r)*np.cos(temp1)*np.cos(ST_Ang_Declination_r) + np.sin(Location_Latitude_r)*np.sin(ST_Ang_Declination_r)))
-        ST_Ang_Sol_Zenith = np.rad2deg(np.arccos(np.cos(Location_Latitude_r)*np.cos(temp1)*np.cos(ST_Ang_Declination_r) + np.sin(Location_Latitude_r)*np.sin(ST_Ang_Declination_r)))
+        #ST_Ang_Hour_f_r = np.deg2rad(Hour['ST_Ang_Hour_f'])
+        ST_Ang_Hour_f_r = np.deg2rad(ST_Ang_Hour_f)
+        #Hour['ST_Ang_Sol_Zenith'] = np.rad2deg(np.arccos(np.cos(Location_Latitude_r)*np.cos(ST_Ang_Hour_f_r)*np.cos(ST_Ang_Declination_r) + np.sin(Location_Latitude_r)*np.sin(ST_Ang_Declination_r)))
+        ST_Ang_Sol_Zenith = np.rad2deg(np.arccos(np.cos(Location_Latitude_r)*np.cos(ST_Ang_Hour_f_r)*np.cos(ST_Ang_Declination_r) + np.sin(Location_Latitude_r)*np.sin(ST_Ang_Declination_r)))
 
         #Hour['ST_Ang_Sol_Altitude'] = 90 - Hour['ST_Ang_Sol_Zenith']
         ST_Ang_Sol_Altitude = 90 - ST_Ang_Sol_Zenith
@@ -125,8 +125,22 @@ def ZoneTime_SolarAngles_(Location_Latitude, Location_Longitude, Module_Tilt, \
         ST_Ang_Sol_Azimuth = np.array(ST_Ang_Sol_Azimuth)
         ST_Ang_Sol_Azimuth[ST_Ang_Sol_Azimuth==np.inf] = 0
 
-        #ST_Ang_Incidence  remaining
-        ST_Ang_Incidence =0
+        Module_Tilt_r =  np.deg2rad(Module_Tilt)
+        Module_Surface_Azimuth_r =  np.deg2rad(Module_Surface_Azimuth)
+        ST_Ang_Incidence =np.arccos(np.sin(ST_Ang_Declination_r)*np.sin(Location_Latitude_r)*np.cos(Module_Tilt_r) -\
+                                    np.sin(ST_Ang_Declination_r)*np.cos(Location_Latitude_r)*np.sin(Module_Tilt_r)*np.cos(Module_Surface_Azimuth_r)+\
+                                    np.cos(ST_Ang_Declination_r)*np.cos(Location_Latitude_r)*np.cos(Module_Tilt_r)*np.cos(ST_Ang_Hour_f_r)+\
+                                    np.cos(ST_Ang_Declination_r)*np.sin(Location_Latitude_r)*np.sin(Module_Tilt_r)*np.cos(Module_Surface_Azimuth_r)*np.cos(ST_Ang_Hour_f_r)+\
+                                    np.cos(ST_Ang_Declination_r)*np.sin(Module_Tilt_r)*np.sin(Module_Surface_Azimuth_r)*np.sin(ST_Ang_Hour_f_r))
+        ST_Ang_Incidence = np.rad2deg(ST_Ang_Incidence)
+        '''
+        ST_Ang_Incidence.append(acosd(sind(ST_Ang_Declination[i])*sind(Location_Latitude)*cosd(Module_Tilt) -\
+                                      sind(ST_Ang_Declination[i])*cosd(Location_Latitude)*sind(Module_Tilt)*cosd(Module_Surface_Azimuth)+\
+                                      cosd(ST_Ang_Declination[i])*cosd(Location_Latitude)*cosd(Module_Tilt)*cosd(ST_Ang_Hour_f[i])+\
+                                      cosd(ST_Ang_Declination[i])*sind(Location_Latitude)*sind(Module_Tilt)*cosd(Module_Surface_Azimuth)*cosd(ST_Ang_Hour_f[i])+\
+                                      cosd(ST_Ang_Declination[i])*sind(Module_Tilt)*sind(Module_Surface_Azimuth)*sind(ST_Ang_Hour_f[i])))
+        '''
+
         index_12 = np.arange(12,row_count,24)
         #day_12 = pd.DataFrame()
         Correction_60_12 = Correction_60[index_12]

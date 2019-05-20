@@ -88,6 +88,38 @@ def Net_Effective_Radiation (Module_Tilt, Array_Height, STAngIncidence, \
 
 #-------------------------- End of Net Effective Radiation function -----------
 
+#------------------------------------------------------------------------------
+# Determination of cell temperature and resource to module power factor
+#------------------------------------------------------------------------------
+#
+def Tcell_ResToModPower (Pgen_Hour_Status, Gt, Tamb_SH, WS_SH, a_CT, b_CT,
+                         DelT, Pmod, Kt_Pmod, Kt_Isc, Kt_Voc, Isc, Voc):
+
+    Gref = 1000
+    Tref = 25
+
+    Tcell = np.zeros(len(Pgen_Hour_Status))
+    Mod_Isc = np.zeros(len(Pgen_Hour_Status))
+    Mod_Voc = np.zeros(len(Pgen_Hour_Status))
+    R_Pmod = np.zeros(len(Pgen_Hour_Status))
+    Agg_R_Pmod = 0
+
+    for hour in range(len(Pgen_Hour_Status)):
+        if Pgen_Hour_Status [hour] == 1:
+            Tcell [hour] = Gt [hour] * math.exp(a_CT + b_CT * WS_SH [hour]) + \
+                    Tamb_SH [hour] + DelT * Gt [hour]/Gref
+            R_Pmod [hour] = (Gt [hour]/Gref) * (1 + (Kt_Pmod/100) * (Tcell [hour] -\
+               Tref))
+            Agg_R_Pmod = Agg_R_Pmod + R_Pmod [hour]
+            Mod_Isc [hour] = Isc * (Gt [hour]/Gref) * (1 + (Kt_Isc/100) * \
+                (Tcell [hour] - Tref))
+            Mod_Voc [hour] = Voc + (Kt_Voc/100) * (Tcell [hour] - Tref)
+
+    return (Tcell, Mod_Isc, Mod_Voc, R_Pmod, Agg_R_Pmod)
+
+#----- End of cell temperature and resource to module power function ----------
+
+
 
 
 
@@ -147,5 +179,22 @@ Gt, n, AnnualGt = Net_Effective_Radiation (ui.User_Assumed_Inputs.Module_Tilt, \
                          ui.User_Assumed_Inputs.Module_Lmod, \
                          ui.User_Assumed_Inputs.Misc_Ground_Clearance, \
                          PgenHourStatus)
+ts2=time.time_ns()
+print(ts2-ts1)
+
+# Calling Function that estimates cell temperature and resource to
+# module power function
+ts1=time.time_ns()
+ModTCell, ModIsc, ModVoc, RPmod, AggRPmod = \
+    Tcell_ResToModPower (PgenHourStatus, Gt, Tamb_SH, WS_SH, \
+                         ui.User_Assumed_Inputs.Mount_a_CT, \
+                         ui.User_Assumed_Inputs.Mount_b_CT, \
+                         ui.User_Assumed_Inputs.Mount_DelT, \
+                         ui.User_Assumed_Inputs.Module_Pmod, \
+                         ui.User_Assumed_Inputs.Module_Kt_Pmax, \
+                         ui.User_Assumed_Inputs.Module_Kt_Isc, \
+                         ui.User_Assumed_Inputs.Module_Kt_Voc, \
+                         ui.User_Assumed_Inputs.Module_Isc, \
+                         ui.User_Assumed_Inputs.Module_Voc)
 ts2=time.time_ns()
 print(ts2-ts1)

@@ -426,11 +426,34 @@ def Net_Effective_Radiation (Module_Tilt, Array_Height, STAngIncidence, \
     status = (Pgen_Hour_Status==1)
     Rb = np.cos(np.deg2rad(STAngIncidence.values))
     Gt = (DNI_SH * Rb + DHI_SH * Rd + GHI_SH * Rg*Albedo)*status
-    Annual_Gt = np.sum(Gt)/1000000
+    Annual_Gt = np.sum(Gt)*1e-06#/1000000
 
     return (Gt, n, Annual_Gt)
 
 #-------------------------- End of Net Effective Radiation function -----------
+
+#------------------------------------------------------------------------------
+# Determination of cell temperature and resource to module power factor
+#------------------------------------------------------------------------------
+#
+def Tcell_ResToModPower (Pgen_Hour_Status, Gt, Tamb_SH, WS_SH, a_CT, b_CT,
+                         DelT, Pmod, Kt_Pmod, Kt_Isc, Kt_Voc, Isc, Voc):
+
+    Gref = 1000
+    Tref = 25
+
+
+    status = (Pgen_Hour_Status==1)
+    temp = Gt/Gref
+    Tcell = (Gt*np.exp(a_CT + b_CT * WS_SH) + Tamb_SH + DelT * temp)*status
+    R_Pmod = temp * (1+(Kt_Pmod*0.01)*(Tcell-Tref))*status
+    Agg_R_Pmod = np.sum(R_Pmod)
+    Mod_Isc = Isc*temp*(1+(Kt_Isc*0.01) *(Tcell-Tref))*status
+    Mod_Voc = (Voc + (Kt_Voc*0.01) * (Tcell - Tref))*status
+
+    return (Tcell, Mod_Isc, Mod_Voc, R_Pmod, Agg_R_Pmod)
+
+#----- End of cell temperature and resource to module power function ----------
 
 
 ui.User_Assumed_Inputs()
@@ -486,5 +509,22 @@ Gt, n, AnnualGt = Net_Effective_Radiation (ui.User_Assumed_Inputs.Module_Tilt, \
                          ui.User_Assumed_Inputs.Module_Lmod, \
                          ui.User_Assumed_Inputs.Misc_Ground_Clearance, \
                          PgenHourStatus)
+ts2=time.time_ns()
+print(ts2-ts1)
+
+# Calling Function that estimates cell temperature and resource to
+# module power function
+ts1=time.time_ns()
+ModTCell, ModIsc, ModVoc, RPmod, AggRPmod = \
+    Tcell_ResToModPower (PgenHourStatus, Gt, Tamb_SH, WS_SH, \
+                         ui.User_Assumed_Inputs.Mount_a_CT, \
+                         ui.User_Assumed_Inputs.Mount_b_CT, \
+                         ui.User_Assumed_Inputs.Mount_DelT, \
+                         ui.User_Assumed_Inputs.Module_Pmod, \
+                         ui.User_Assumed_Inputs.Module_Kt_Pmax, \
+                         ui.User_Assumed_Inputs.Module_Kt_Isc, \
+                         ui.User_Assumed_Inputs.Module_Kt_Voc, \
+                         ui.User_Assumed_Inputs.Module_Isc, \
+                         ui.User_Assumed_Inputs.Module_Voc)
 ts2=time.time_ns()
 print(ts2-ts1)

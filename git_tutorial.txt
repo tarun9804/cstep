@@ -1,5 +1,12 @@
 Getting & Creating Projects
 
+git status
+git log --summary
+git add -A
+git commit -m "comments"
+git push or git push origin "branch name"
+
+
 Command	Description
 git init	Initialize a local Git repository
 git clone ssh://git@github.com/[username]/[repository-name].git	Create a local copy of a remote repository

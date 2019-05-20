@@ -14,6 +14,8 @@ import numpy as np
 import time
 import user_input as ui
 
+row_count = 8760
+
 def con2time(x):
     temp = np.modf(x)
     hr=temp[1]
@@ -31,7 +33,7 @@ def getAngDeclination(x):
 
 
 
-def ZoneTime_SolarAngles_(Location_Latitude, Location_Longitude, Module_Tilt, \
+def ZoneTime_SolarAngles(Location_Latitude, Location_Longitude, Module_Tilt, \
                           Module_Surface_Azimuth, Ref_Latitude, Ref_Longitude):
 
         Location_Latitude = Location_Latitude#x[0]#6.05
@@ -272,7 +274,7 @@ def ZoneTime_SolarAngles_(Location_Latitude, Location_Longitude, Module_Tilt, \
 
 
 
-def Resource_Estimation_(ghi,dhi,dni,ws,tamb,shs,sw,zdh):
+def Resource_Estimation(ghi,dhi,dni,ws,tamb,shs,sw,zdh):
     #Resource_param.loc[shs==1,'Sun_Hour_Status'] =1
     #print(shs[0:20])
     #shs=shs.values
@@ -378,7 +380,24 @@ def Resource_Estimation_(ghi,dhi,dni,ws,tamb,shs,sw,zdh):
             DHI_SH, DNI_SH, Tamb_SH, WS_SH)
 
 
+def Spacing_Factor(Module_Tilt, Ang_Sol_Azimuth, Ang_Sol_Altitude, ZT_Day_Hour):
 
+    mask = (Ang_Sol_Altitude>=1)
+    Pgen_Hour_Status = mask.astype(int)
+    Pgen_Day_Hour = ZT_Day_Hour*mask
+    Module_Tilt_r = np.deg2rad(Module_Tilt)
+    Ang_Sol_Azimuth_r = np.deg2rad(Ang_Sol_Azimuth)
+    Ang_Sol_Altitude_r = np.deg2rad(Ang_Sol_Altitude.values)
+    test = (np.sin(Module_Tilt_r)*np.cos(Ang_Sol_Azimuth_r))/np.tan(Ang_Sol_Altitude_r)
+    Lrow_Factor = test*mask
+    test = (np.sin(Module_Tilt_r)*np.sin(Ang_Sol_Azimuth_r))/np.tan(Ang_Sol_Altitude_r)
+    Lcol_Factor = test*mask
+    Pgen_Window = (np.min(Pgen_Day_Hour[np.nonzero(Pgen_Day_Hour)]), \
+                            np.max(Pgen_Day_Hour[np.nonzero(Pgen_Day_Hour)]))
+    Annual_Pgen_Hours = np.sum(Pgen_Hour_Status)
+
+    return(Pgen_Hour_Status, Pgen_Day_Hour, Lrow_Factor, Lcol_Factor, \
+           Pgen_Window, Annual_Pgen_Hours)
 
 
 ui.User_Assumed_Inputs()
@@ -391,7 +410,7 @@ ZoneTime, ZTDayHour,SolarTime, STAng_Hour_f, STAngSolAltitude, \
             MaxCorrection, MinCorrection, MinTrise, MaxTrise, MinTset, MaxTset, \
             MaxDayLength, MinDayLength, SunWindow, SunWindowLength, MaxDLSRSS, \
             MinDLSRSS \
-            = ZoneTime_SolarAngles_(ui.User_Assumed_Inputs.Location_Latitude,\
+            = ZoneTime_SolarAngles(ui.User_Assumed_Inputs.Location_Latitude,\
                                     ui.User_Assumed_Inputs.Location_Longitude,\
                                     ui.User_Assumed_Inputs.Module_Tilt, \
                                     ui.User_Assumed_Inputs.Module_Surface_Azimuth,\
@@ -408,12 +427,20 @@ AnAgGHI, AnAgDHI, AnAgDNI, AnAgSunHours, MaxTambSH, MinTambSH, AveTambSH, \
  MonMinTamb, MonAvTamb, MonMaxWS, MonMinWS, MonAvWS, DayAgGHI, DayAgDHI, \
  DayAgDNI, DaySunshineHours, DayMaxWS, DayMinWS, DayAvWS, DayMaxTamb, \
  DayMinTamb, DayAvTamb, GHI_SH, DHI_SH, DNI_SH, Tamb_SH, WS_SH \
-            = Resource_Estimation_ (ui.User_Assumed_Inputs.GHI, \
+            = Resource_Estimation(ui.User_Assumed_Inputs.GHI, \
                                    ui.User_Assumed_Inputs.DHI, \
                                    ui.User_Assumed_Inputs.DNI, \
                                    ui.User_Assumed_Inputs.WS, \
                                    ui.User_Assumed_Inputs.Tamb, \
                                    SunHourStatus, SunWindow, \
                                    ZTDayHour)
+ts2=time.time_ns()
+print(ts2-ts1)
+ts1=time.time_ns()
+# Calling Function that estimates spacing factor and generation hours
+PgenHourStatus, PgenDayHour, LrowFactor, LcolFactor, PgenWindow, \
+    AnnualPgenHours = Spacing_Factor(ui.User_Assumed_Inputs.Module_Tilt, \
+                                       STAngSolAzimuth, STAngSolAltitude, \
+                                       ZTDayHour)
 ts2=time.time_ns()
 print(ts2-ts1)

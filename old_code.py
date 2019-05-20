@@ -33,12 +33,12 @@ def atand(x):return math.degrees(math.atan(x))
 #------------------------------------------------------------------------------
 
 def User_Assumed_Inputs():
-    
+
     # Importing data from base input file
     User_Inp = pd.read_excel ('Model_Inputs.xlsx', 'Base', index_col = None)
     Solar_Data = pd.read_excel('Model_Inputs.xlsx','Solar Data', index_col = 0)
-    
-    
+
+
     # Mapping inputs
     # Base Data Inputs
     User_Assumed_Inputs.Location_Name = User_Inp ['Data'][0]
@@ -50,7 +50,7 @@ def User_Assumed_Inputs():
     User_Assumed_Inputs.Plant_Life = User_Inp ['Data'][4]
     User_Assumed_Inputs.Module_Tilt = User_Inp ['Data'][5]
     User_Assumed_Inputs.Module_Surface_Azimuth = User_Inp ['Data'][6]
-    
+
     # Module Data
     User_Assumed_Inputs.Module_Manufacturer = User_Inp ['Data'][7]
     User_Assumed_Inputs.Module_Technology = User_Inp ['Data'][8]
@@ -67,7 +67,7 @@ def User_Assumed_Inputs():
     User_Assumed_Inputs.Module_Kt_Isc = User_Inp ['Data'][19]
     User_Assumed_Inputs.Module_Rating_EoYr1 = User_Inp ['Data'][20]
     User_Assumed_Inputs.Module_YoY_Degrdn_rate = User_Inp ['Data'][21]
-    
+
     # PCU Data
     User_Assumed_Inputs.PCU_Manufacturer = User_Inp ['Data'][22]
     User_Assumed_Inputs.PCU_Model = User_Inp ['Data'][23]
@@ -80,14 +80,14 @@ def User_Assumed_Inputs():
     User_Assumed_Inputs.PCU_VmaxDC = User_Inp ['Data'][30]
     User_Assumed_Inputs.PCU_InomDC = User_Inp ['Data'][31]
     User_Assumed_Inputs.PCU_ImaxDC = User_Inp ['Data'][32]
-    
+
     # Mount Data
     User_Assumed_Inputs.Mount_Module_Type = User_Inp ['Data'][33]
     User_Assumed_Inputs.Mount_Style = User_Inp ['Data'][34]
     User_Assumed_Inputs.Mount_a_CT = User_Inp ['Data'][35]
     User_Assumed_Inputs.Mount_b_CT = User_Inp ['Data'][36]
     User_Assumed_Inputs.Mount_DelT = User_Inp ['Data'][37]
-    
+
     # Miscellaneous Data
     User_Assumed_Inputs.Misc_Albedo = User_Inp ['Data'][38]
     User_Assumed_Inputs.Misc_Array_height = User_Inp ['Data'][39]
@@ -97,18 +97,18 @@ def User_Assumed_Inputs():
     User_Assumed_Inputs.Misc_SL_PC = User_Inp ['Data'][43]
     User_Assumed_Inputs.Misc_EL_PC = User_Inp ['Data'][44]
     User_Assumed_Inputs.Misc_Aux_MWhR = User_Inp ['Data'][45]
-    
+
     # Solar Data
     User_Assumed_Inputs.GHI = Solar_Data ['GHI']
     User_Assumed_Inputs.DHI = Solar_Data ['DHI']
     User_Assumed_Inputs.DNI = Solar_Data ['DNI']
     User_Assumed_Inputs.Tamb = Solar_Data ['Tamb']
     User_Assumed_Inputs.WS = Solar_Data ['WS']
-    
+
     # User inputs
     User_Assumed_Inputs.V_PCU_Choice = 1
     User_Assumed_Inputs.Vuser = 0
-    
+
 #-----------------------------------------------------------------------------
 # Estimation of Solar angles and zone time related parameters
 #------------------------------------------------------------------------------
@@ -130,13 +130,13 @@ Further it estimates the:
     Solar Azimuth angle (ST)
     Sun hour status (ST)
     Annual Sun hours
-    
+
 Considering the Module tilt angle and surface azimuth angle of the array,
 it also estimates the 'Incidence angle (ST)' of the sun rays on the module
-    
+
 """
-                      
-# Defining time conversion function 
+
+# Defining time conversion function
 def Conv2Time (Var):
     Var_Hour = int(Var)
     Var_Min = int((Var - Var_Hour)*60)
@@ -145,7 +145,7 @@ def Conv2Time (Var):
 
 def ZoneTime_SolarAngles (Location_Latitude, Location_Longitude, Module_Tilt, \
                           Module_Surface_Azimuth, Ref_Latitude, Ref_Longitude):
-    
+
     # Declarations:
     # =============
     Hour = list()
@@ -179,7 +179,7 @@ def ZoneTime_SolarAngles (Location_Latitude, Location_Longitude, Module_Tilt, \
     ZT_Trise = list()
     ZT_Date = list()
     ST_Day_Length = list()
-    
+
     EOLD = 4 * (Ref_Longitude - Location_Longitude)
     ii = 0
     # Defining Zone Time and Relevant angles
@@ -187,13 +187,13 @@ def ZoneTime_SolarAngles (Location_Latitude, Location_Longitude, Module_Tilt, \
         Hour.append(i)
         ZT_Day_Hour.append(Hour[i] % 24)
         ZT_Day.append((Hour[i]//24)+1)
-        ZT_B.append((ZT_Day[i]-1)*360/365)    
-        if i == 0: 
-            # Syntax: datetime.datetime(year, month, day, hour=0, minute=0, 
+        ZT_B.append((ZT_Day[i]-1)*360/365)
+        if i == 0:
+            # Syntax: datetime.datetime(year, month, day, hour=0, minute=0,
             # second=0, microsecond=0, tzinfo=None, *, fold=0)
-            Zone_Time.append(datetime (2015,1,1,00,00,00))        
+            Zone_Time.append(datetime (2015,1,1,00,00,00))
         else:
-            # Syntax: datetime.timedelta(days=0, seconds=0, microseconds=0, 
+            # Syntax: datetime.timedelta(days=0, seconds=0, microseconds=0,
             # milliseconds=0, minutes=0, hours=0, weeks=0)
             Zone_Time.append(Zone_Time[i-1] + timedelta(0,0,0,0,0,1,0))
         EOT.append(229.2 * (0.000075 + 0.001868 * cosd(ZT_B[i]) - 0.032077 * sind(ZT_B[i]) - 0.014615 * cosd(2*ZT_B[i]) - 0.040849 * sind(2*ZT_B[i])))
@@ -201,13 +201,13 @@ def ZoneTime_SolarAngles (Location_Latitude, Location_Longitude, Module_Tilt, \
         Correction_Hour, Correction_Min, Correction_Sec = Conv2Time (Correction[i]/60)
         Solar_Time.append(Zone_Time[i] + timedelta(0,Correction_Sec,0,0, Correction_Min,Correction_Hour,0))
         ST_Day_Hour_f.append(Solar_Time[i].hour + Solar_Time[i].minute/60 + Solar_Time[i].second/3600)
-        
+
         # timetuple().tm_yday --> extracts the julian day 1 to 365 (or 366) from datetime object
         ST_Day.append(Solar_Time[i].timetuple().tm_yday)
-        ST_B.append((ST_Day[i]-1)*360/365) 
+        ST_B.append((ST_Day[i]-1)*360/365)
         ST_Ang_Declination.append((180/math.pi)*(0.006918 - 0.399912 * cosd(ST_B[i]) + 0.070257 * sind(ST_B[i]) - 0.006758 * cosd(2*ST_B[i]) + 0.000907 * sind(2*ST_B[i]) - 0.002697 * cosd(3*ST_B[i]) + 0.00148 * sind(3 * ST_B[i]))  )
         ST_Ang_Hour_f.append(-15*(12-ST_Day_Hour_f[i]))
-        
+
         ST_Ang_Sol_Zenith.append(acosd(cosd(Location_Latitude)*cosd(ST_Ang_Hour_f[i])*cosd(ST_Ang_Declination[i]) + sind(Location_Latitude)*sind(ST_Ang_Declination[i])))
         ST_Ang_Sol_Altitude.append(90 - ST_Ang_Sol_Zenith[i])
         if ST_Ang_Sol_Altitude[i] >= 0:
@@ -219,7 +219,7 @@ def ZoneTime_SolarAngles (Location_Latitude, Location_Longitude, Module_Tilt, \
             ST_Ang_Sol_Azimuth.append((np.sign(ST_Ang_Hour_f[i]))*abs(acosd((cosd(ST_Ang_Sol_Zenith[i])*sind(Location_Latitude) - sind(ST_Ang_Declination[i]))/(sind(ST_Ang_Sol_Zenith[i])*cosd(Location_Latitude)))))
         except:
             ST_Ang_Sol_Azimuth.append(0)
-            
+
         ST_Ang_Incidence.append(acosd(sind(ST_Ang_Declination[i])*sind(Location_Latitude)*cosd(Module_Tilt) -\
                                       sind(ST_Ang_Declination[i])*cosd(Location_Latitude)*sind(Module_Tilt)*cosd(Module_Surface_Azimuth)+\
                                       cosd(ST_Ang_Declination[i])*cosd(Location_Latitude)*cosd(Module_Tilt)*cosd(ST_Ang_Hour_f[i])+\
@@ -237,60 +237,60 @@ def ZoneTime_SolarAngles (Location_Latitude, Location_Longitude, Module_Tilt, \
             Lis_Trise.append(T_Rise - Correction[i]/60)
             T_Rise_Hour, T_Rise_Min, T_Rise_Sec = Conv2Time(T_Rise)
             ST_Trise.append(datetime(Solar_Time[i].year, Solar_Time[i].month, Solar_Time[i].day, T_Rise_Hour, T_Rise_Min, T_Rise_Sec))
-            ZT_Trise.append(ST_Trise[ii] - timedelta(0,Correction_Sec,0,0,Correction_Min,Correction_Hour,0))  
-            ZT_Tset.append(ST_Tset[ii] - timedelta(0,Correction_Sec,0,0,Correction_Min,Correction_Hour,0))  
+            ZT_Trise.append(ST_Trise[ii] - timedelta(0,Correction_Sec,0,0,Correction_Min,Correction_Hour,0))
+            ZT_Tset.append(ST_Tset[ii] - timedelta(0,Correction_Sec,0,0,Correction_Min,Correction_Hour,0))
             ZT_Date.append(date(Solar_Time[i].year, Solar_Time[i].month, Solar_Time[i].day))
             Day_Length = ST_Wset[ii]*2/15
             Day_Length_Hour, Day_Length_Min, Day_Length_Sec = Conv2Time (Day_Length)
             ST_Day_Length.append(datetime(Solar_Time[i].year, Solar_Time[i].month, Solar_Time[i].day, Day_Length_Hour,Day_Length_Min,Day_Length_Sec,0))
             Day_Length_Tset_Trise.append(Lis_Tset[ii] - Lis_Trise[ii])
-            
+
             ii = ii + 1
-   
+
 
     Max_Correction = (ZT_Date[Correction_HHMMSS.index(max(Correction_HHMMSS))],max(Correction_HHMMSS))
     Min_Correction = (ZT_Date[Correction_HHMMSS.index(min(Correction_HHMMSS))],min(Correction_HHMMSS))
-    
+
     Buff_Hour, Buff_Min, Buff_Sec = Conv2Time (max(Lis_Trise))
     Max_Trise = (ZT_Date[Lis_Trise.index(max(Lis_Trise))],time(Buff_Hour, Buff_Min, Buff_Sec))
-    
+
     Buff_Hour, Buff_Min, Buff_Sec = Conv2Time (max(Lis_Tset))
     Max_Tset = (ZT_Date[Lis_Tset.index(max(Lis_Tset))],time(Buff_Hour, Buff_Min, Buff_Sec))
-    
+
     Buff_Hour, Buff_Min, Buff_Sec = Conv2Time (min(Lis_Trise))
     Min_Trise = (ZT_Date[Lis_Trise.index(min(Lis_Trise))],time(Buff_Hour, Buff_Min, Buff_Sec))
-    
+
     Buff_Hour, Buff_Min, Buff_Sec = Conv2Time (min(Lis_Tset))
     Min_Tset = (ZT_Date[Lis_Tset.index(min(Lis_Tset))],time(Buff_Hour, Buff_Min, Buff_Sec))
-    
+
     Buff_Hour, Buff_Min, Buff_Sec = Conv2Time (max(Day_Length_Tset_Trise))
     Max_DayLength = \
         (ZT_Date[Day_Length_Tset_Trise.index(max(Day_Length_Tset_Trise))], \
                  time(Buff_Hour, Buff_Min, Buff_Sec))
-    
+
 #--------------------------
-# Sun rise and sun set time for max and min daylength added on 30 Apr 2019 
+# Sun rise and sun set time for max and min daylength added on 30 Apr 2019
     Buff_Ind = Day_Length_Tset_Trise.index(max(Day_Length_Tset_Trise))
-    
+
     Max_DL_SRSS  = (time(ZT_Trise[Buff_Ind].hour, ZT_Trise[Buff_Ind].minute, 0), \
                     time(ZT_Tset[Buff_Ind].hour, ZT_Tset[Buff_Ind].minute, 0))
-    
-    
+
+
     Buff_Hour, Buff_Min, Buff_Sec = Conv2Time (min(Day_Length_Tset_Trise))
-    
+
     Min_DayLength = \
         (ZT_Date[Day_Length_Tset_Trise.index(min(Day_Length_Tset_Trise))],\
                  time(Buff_Hour, Buff_Min, Buff_Sec))
-        
+
     Buff_Ind = Day_Length_Tset_Trise.index(min(Day_Length_Tset_Trise))
-    
+
     Min_DL_SRSS = (time(ZT_Trise[Buff_Ind].hour, ZT_Trise[Buff_Ind].minute, ZT_Trise[Buff_Ind].second), \
                 time(ZT_Tset[Buff_Ind].hour, ZT_Tset[Buff_Ind].minute, ZT_Tset[Buff_Ind].second))
-        
 
-#------------------------    
+
+#------------------------
     Sun_Window = (math.floor(min(Lis_Trise)), math.ceil(max(Lis_Tset)))
-    
+
     Buff_Hour, Buff_Min, Buff_Sec = Conv2Time (Sun_Window[1] - Sun_Window[0])
     Sun_Window_Length = (time(Buff_Hour, Buff_Min, Buff_Sec))
 
@@ -302,7 +302,170 @@ def ZoneTime_SolarAngles (Location_Latitude, Location_Longitude, Module_Tilt, \
             Max_DL_SRSS, Min_DL_SRSS)
 
 # -------------------- End of functions related to time and solar angles ------
-    
+#------------------------------------------------------------------------------
+# Estimating solar resource
+#------------------------------------------------------------------------------
+
+def Resource_Estimation (GHI, DHI, DNI, WS, Tamb, Sun_Hour_Status, Sun_Window, \
+                        ZT_Day_Hour):
+
+    GHI = GHI.values
+    DHI = DHI.values
+    DNI = DNI.values
+    Tamb = Tamb.values
+    WS = WS.values
+
+    GHI_SH = np.zeros(len(GHI))
+    DHI_SH = np.zeros(len(DHI))
+    DNI_SH = np.zeros(len(DNI))
+    Tamb_SH = np.zeros(len(Tamb))
+    WS_SH = np.zeros(len(WS))
+
+    # Annual Aggregate Parameters for base dataset in MW/sq.m
+    An_Ag_GHI_base = (np.sum(GHI)/1000000)
+    An_Ag_DHI_base = (np.sum(DHI)/1000000)
+    An_Ag_DNI_base = (np.sum(DNI)/1000000)
+
+    # Defining daily parameters during sunshine hours
+    Day_Ag_GHI = np.zeros(365)
+    Day_Ag_DHI = np.zeros(365)
+    Day_Ag_DNI = np.zeros(365)
+    Daily_Sum_Tamb = np.zeros(365)
+    Daily_Sum_WS = np.zeros(365)
+    Day_Av_WS = np.zeros(365)
+    Day_Av_Tamb = np.zeros(365)
+    Day_Sunshine_Hours = np.zeros(365)
+    Day_Min_Tamb = np.full(365, 999.0)
+    Day_Max_Tamb = np.zeros(365)
+    Day_Min_WS = np.full(365, 999.0)
+    Day_Max_WS = np.zeros(365)
+
+    # Defining monthly parameters during sunshine hours
+    Mon_Ag_GHI = np.zeros(12)
+    Mon_Ag_DHI = np.zeros(12)
+    Mon_Ag_DNI = np.zeros(12)
+    Mon_Ag_Sun_Hours = np.zeros(12)
+    Mon_Sum_Tamb = np.zeros(12)
+    Mon_Sum_WS = np.zeros(12)
+    Mon_Av_WS = np.zeros(12)
+    Mon_Av_Tamb = np.zeros(12)
+    Mon_Max_Tamb = np.zeros(12)
+    Mon_Min_Tamb = np.full(12, 999.0)
+    Mon_Max_WS = np.zeros(12)
+    Mon_Min_WS = np.full(12, 999.0)
+
+    Day = 0
+    Month = 0
+    for i in range(len(Sun_Hour_Status)):
+        Day = (i//24)
+        if Sun_Hour_Status [i] == 1:
+
+            # Slicing solar data for sun-hours only
+            GHI_SH [i] = GHI [i]
+            DHI_SH [i] = DHI [i]
+            DNI_SH [i] = DNI [i]
+            Tamb_SH [i] = Tamb [i]
+            WS_SH [i] = WS [i]
+
+            # Estimating daily parameters (to get in kW/sq.m, sol data x 0.001)
+            Daily_Sum_Tamb [Day] = Daily_Sum_Tamb [Day] + Tamb [i]
+            Day_Ag_GHI [Day] = Day_Ag_GHI [Day] + GHI [i] * 0.001
+            Day_Ag_DHI [Day] = Day_Ag_DHI [Day] + DHI [i] * 0.001
+            Day_Ag_DNI [Day] = Day_Ag_DNI [Day] + DNI [i] * 0.001
+            Daily_Sum_WS [Day] = Daily_Sum_WS [Day] + WS [i]
+            Day_Sunshine_Hours [Day] = Day_Sunshine_Hours [Day] + 1
+
+            if Day_Max_WS [Day] < WS [i]:
+                Day_Max_WS [Day] = WS [i]
+            if Day_Min_WS [Day] > WS [i]:
+                Day_Min_WS [Day] = WS [i]
+            if Day_Max_Tamb [Day]< Tamb [i]:
+                Day_Max_Tamb [Day] = Tamb [i]
+            if Day_Min_Tamb [Day] > Tamb [i]:
+                Day_Min_Tamb [Day] = Tamb [i]
+
+            #Estimating monthly parameters
+            if Day <= 30:
+                Month = 0
+            if Day > 30 and Day <= 58:
+                Month = 1
+            if Day > 58 and Day <= 89:
+                Month = 2
+            if Day > 89 and Day <= 119:
+                Month = 3
+            if Day > 119 and Day <= 150:
+                Month = 4
+            if Day > 150 and Day <= 180:
+                Month = 5
+            if Day > 180 and Day <= 211:
+                Month = 6
+            if Day > 211 and Day <= 242:
+                Month = 7
+            if Day > 242 and Day <= 272:
+                Month = 8
+            if Day > 272 and Day <= 303:
+                Month = 9
+            if Day > 303 and Day <= 333:
+                Month = 10
+            if Day > 333 and Day <= 364:
+                Month = 11
+
+            Mon_Ag_GHI [Month] = Mon_Ag_GHI [Month] + GHI [i] * 0.001
+            Mon_Ag_DNI [Month] = Mon_Ag_DNI [Month] + DNI [i] * 0.001
+            Mon_Ag_DHI [Month] = Mon_Ag_DHI [Month] + DHI [i] * 0.001
+            Mon_Ag_Sun_Hours [Month] = Mon_Ag_Sun_Hours [Month] + 1
+            Mon_Sum_Tamb [Month] = Mon_Sum_Tamb [Month] + Tamb [i]
+            Mon_Sum_WS [Month] = Mon_Sum_WS [Month] + WS [i]
+            if Mon_Max_Tamb [Month] < Tamb [i]:
+                    Mon_Max_Tamb [Month] = Tamb [i]
+            if Mon_Min_Tamb [Month] > Tamb [i]:
+                    Mon_Min_Tamb [Month] = Tamb [i]
+            if Mon_Max_WS [Month] < WS [i]:
+                    Mon_Max_WS [Month] = WS [i]
+            if Mon_Min_WS [Month] > WS [i]:
+                    Mon_Min_WS [Month] = WS [i]
+
+    for i in range(len(Day_Sunshine_Hours)):
+        Day_Av_Tamb [i] = Daily_Sum_Tamb [i]/Day_Sunshine_Hours[i]
+        Day_Av_WS [i]= Daily_Sum_WS [i]/Day_Sunshine_Hours [i]
+
+    for i in range(len(Mon_Ag_Sun_Hours)):
+        Mon_Av_Tamb [i] = Mon_Sum_Tamb [i]/Mon_Ag_Sun_Hours[i]
+        Mon_Av_WS [i] = Mon_Sum_WS [i]/Mon_Ag_Sun_Hours [i]
+
+    # Annual Aggregate radiation parameters for sunshine hours in MW/sq.m
+    An_Ag_GHI_SH = (np.sum(Day_Ag_GHI)/1000)
+    An_Ag_DHI_SH = (np.sum(Day_Ag_DHI)/1000)
+    An_Ag_DNI_SH = (np.sum(Day_Ag_DNI)/1000)
+    An_Ag_SunHours = Day_Sunshine_Hours.sum()
+
+    # Annual Min and Max parameters
+    Min_Tamb_SH = Tamb_SH[np.nonzero(Tamb_SH)].min()
+    Max_Tamb_SH = Tamb_SH[np.nonzero(Tamb_SH)].max()
+    Ave_Tamb_SH = Tamb_SH[np.nonzero(Tamb_SH)].mean()
+
+    Min_WS_SH = WS_SH.min()
+    Max_WS_SH = WS_SH.max()
+    Ave_WS_SH = Daily_Sum_WS.sum()/Day_Sunshine_Hours.sum()
+
+    # Per Day average
+    Av_Ag_GHI_Per_Day = Day_Ag_GHI.mean()
+    Av_Ag_DHI_Per_Day = Day_Ag_DHI.mean()
+    Av_Ag_DNI_Per_Day = Day_Ag_DNI.mean()
+    Av_Sunshine_Hours_Per_Day = Day_Sunshine_Hours.sum()/365
+
+    return (An_Ag_GHI_SH, An_Ag_DHI_SH, An_Ag_DNI_SH, An_Ag_SunHours, \
+            Max_Tamb_SH, Min_Tamb_SH, Ave_Tamb_SH, Max_WS_SH, Min_WS_SH, \
+            Ave_WS_SH, Av_Ag_GHI_Per_Day, Av_Ag_DHI_Per_Day, Av_Ag_DNI_Per_Day,\
+            Av_Sunshine_Hours_Per_Day, Mon_Ag_GHI, Mon_Ag_DHI, Mon_Ag_DNI, \
+            Mon_Ag_Sun_Hours, Mon_Max_Tamb, Mon_Min_Tamb, Mon_Av_Tamb, \
+            Mon_Max_WS, Mon_Min_WS, Mon_Av_WS, Day_Ag_GHI, Day_Ag_DHI, \
+            Day_Ag_DNI, Day_Sunshine_Hours, Day_Max_WS, Day_Min_WS, \
+            Day_Av_WS, Day_Max_Tamb, Day_Min_Tamb, Day_Av_Tamb, GHI_SH, \
+            DHI_SH, DNI_SH, Tamb_SH, WS_SH)
+
+# -------------------- End of resource estimation function --------------------
+
 #Obtaining user inputs
 '''
 User_Assumed_Inputs()

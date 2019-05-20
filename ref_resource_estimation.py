@@ -190,6 +190,76 @@ def Plant_Sizing_Parameters (V_PCU_Choice, Vuser, n, R_Pmod, Mod_Isc, Mod_Voc, \
 
 #-------- End of plant sizing parameters function -----------------------------
 
+#------------------------------------------------------------------------------
+# Estimation of inter-row and inter-column spacing
+#------------------------------------------------------------------------------
+#
+def Inter_Row_Col_Spacing (Pgen_Window, Sun_Hour_Status, Pgen_Hour_Status, \
+                           ZT_Day_Hour, L_row_Factor, L_col_Factor, n, Lmod, \
+                           R_Pmod, Gt):
+
+    Pgen_2hr_Window = (Pgen_Window [0] + 1, Pgen_Window [1] - 1)
+    Pgen_4hr_Window = (Pgen_Window [0] + 2, Pgen_Window [1] - 2)
+
+   # index = 0 --> Pgen hrs, 1 --> Pgen - 2 hrs,  2 --> Pgen - 4hrs
+    Agg_R_Pmod = np.zeros (3)
+
+    Lrow = np.zeros(len(Sun_Hour_Status))
+    Lcol = np.zeros(len(Sun_Hour_Status))
+    Gt_Pgen = np.zeros(len(Sun_Hour_Status))
+    Gt_Pgen_2hr = np.zeros (len(Sun_Hour_Status))
+    Gt_Pgen_4hr = np.zeros (len(Sun_Hour_Status))
+
+    Drow = np.zeros(3)
+    Dcol = np.zeros(3)
+
+    Annual_GenHr = np.zeros (3)
+
+    for hour in range(len(Sun_Hour_Status)):
+        if Sun_Hour_Status [hour] == 1:
+            Lrow [hour] = n * Lmod * L_row_Factor [hour]
+            Lcol [hour] = n * Lmod * L_col_Factor [hour]
+
+        if Pgen_Hour_Status [hour] == 1:
+            Agg_R_Pmod [0] = Agg_R_Pmod [0] + R_Pmod [hour]
+            Annual_GenHr [0] = Annual_GenHr [0] + 1
+            Gt_Pgen [hour] = Gt [hour]
+            if Lrow [hour] > Drow [0]:
+                Drow [0] = Lrow [hour]
+            if Lcol [hour] > Dcol [0]:
+                Dcol [0] = Lcol [hour]
+
+        if (ZT_Day_Hour [hour] >= Pgen_2hr_Window [0]) and (ZT_Day_Hour [hour] <= \
+           Pgen_2hr_Window [1]):
+            Agg_R_Pmod [1] = Agg_R_Pmod [1] + R_Pmod [hour]
+            Annual_GenHr [1] = Annual_GenHr [1] + 1
+            Gt_Pgen_2hr [hour] = Gt [hour]
+            if Lrow [hour] > Drow [1]:
+                Drow [1] = Lrow [hour]
+            if Lcol [hour] > Dcol [1]:
+                Dcol [1] = Lcol [hour]
+
+        if (ZT_Day_Hour [hour] >= Pgen_4hr_Window [0]) and (ZT_Day_Hour [hour] <= \
+           Pgen_4hr_Window [1]):
+            Agg_R_Pmod [2] = Agg_R_Pmod [2] + R_Pmod [hour]
+            Annual_GenHr [2] = Annual_GenHr [2] + 1
+            Gt_Pgen_4hr [hour] = Gt [hour]
+            if Lrow [hour] > Drow [2]:
+                Drow [2] = Lrow [hour]
+            if Lcol [hour] > Dcol [2]:
+                Dcol [2] = Lcol [hour]
+
+    # Annaul radiation on the tilted panel in MW / sq.m
+    An_Gt = np.zeros (3)
+    An_Gt [0] = Gt_Pgen.sum()/1000000
+    An_Gt [1] = Gt_Pgen_2hr.sum()/1000000
+    An_Gt [2] = Gt_Pgen_4hr.sum()/1000000
+
+    return (Drow, Dcol, Annual_GenHr, Agg_R_Pmod, Pgen_2hr_Window, \
+            Pgen_4hr_Window, Gt_Pgen, Gt_Pgen_2hr, Gt_Pgen_4hr, An_Gt)
+
+#-------- End of Inter-row and Inter-col spacing  function -------------------
+
 
 
 
@@ -293,5 +363,19 @@ PplantPCU, OriginalPplant, PmaxDeviationNewCap, P_PCU_DCMax = \
                          ui.User_Assumed_Inputs.Module_Bmod, \
                          ui.User_Assumed_Inputs.PCU_Vmppmax, \
                          ui.User_Assumed_Inputs.PCU_Vmppmin)
+ts2=time.time_ns()
+print(ts2-ts1)
+
+
+# Calling the function that estimates inter-row, inter-column spacing;
+# aggregate resource to module power factor and annual generation hours
+# for all 3 time windows
+ts1=time.time_ns()
+Drow, Dcol, AnnualGenHr, AggRPmod, Pgen2hrWindow, Pgen4hrWindow, GtPgen, \
+GtPgen2hr, GtPgen4hr, AnGt = \
+        Inter_Row_Col_Spacing (PgenWindow, SunHourStatus, PgenHourStatus, \
+                           ZTDayHour, LrowFactor, LcolFactor, n, \
+                           ui.User_Assumed_Inputs.Module_Lmod, RPmod, Gt)
+
 ts2=time.time_ns()
 print(ts2-ts1)

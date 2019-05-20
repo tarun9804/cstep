@@ -400,6 +400,39 @@ def Spacing_Factor(Module_Tilt, Ang_Sol_Azimuth, Ang_Sol_Altitude, ZT_Day_Hour):
            Pgen_Window, Annual_Pgen_Hours)
 
 
+#------------------------------------------------------------------------------
+# Determination of net effective radiation on the tilted panel
+#------------------------------------------------------------------------------
+#
+# This module is only for fixed tilt configuration
+# Seperate functions need to be developed for module tracking
+#
+def Net_Effective_Radiation (Module_Tilt, Array_Height, STAngIncidence, \
+                             GHI_SH, DHI_SH, DNI_SH, Albedo, Lmod, \
+                             Ground_Clearance, Pgen_Hour_Status):
+
+    #Rb = np.zeros(len(Pgen_Hour_Status))
+    #Gt = np.zeros(len(Pgen_Hour_Status))
+    Module_Tilt_r = np.deg2rad(Module_Tilt)
+
+    #Rd = 0.5 * (1 + cosd(Module_Tilt))
+    #Rg = 0.5 * (1 - cosd(Module_Tilt))
+    Rd = 0.5 * (1 + np.cos(Module_Tilt_r))
+    Rg = 0.5 * (1 - np.cos(Module_Tilt_r))
+
+    #n = math.floor((Array_Height)/(Lmod * sind(Module_Tilt)))
+    n = np.floor((Array_Height)/(Lmod * np.sin(Module_Tilt_r)))
+
+    status = (Pgen_Hour_Status==1)
+    Rb = np.cos(np.deg2rad(STAngIncidence.values))
+    Gt = (DNI_SH * Rb + DHI_SH * Rd + GHI_SH * Rg*Albedo)*status
+    Annual_Gt = np.sum(Gt)/1000000
+
+    return (Gt, n, Annual_Gt)
+
+#-------------------------- End of Net Effective Radiation function -----------
+
+
 ui.User_Assumed_Inputs()
 
 ts1=time.time_ns()
@@ -442,5 +475,16 @@ PgenHourStatus, PgenDayHour, LrowFactor, LcolFactor, PgenWindow, \
     AnnualPgenHours = Spacing_Factor(ui.User_Assumed_Inputs.Module_Tilt, \
                                        STAngSolAzimuth, STAngSolAltitude, \
                                        ZTDayHour)
+ts2=time.time_ns()
+print(ts2-ts1)
+# Calling Function that estimates net effective radiation
+ts1=time.time_ns()
+Gt, n, AnnualGt = Net_Effective_Radiation (ui.User_Assumed_Inputs.Module_Tilt, \
+                         ui.User_Assumed_Inputs.Misc_Array_height, \
+                         STAngIncidence, GHI_SH, DHI_SH, DNI_SH, \
+                         ui.User_Assumed_Inputs.Misc_Albedo, \
+                         ui.User_Assumed_Inputs.Module_Lmod, \
+                         ui.User_Assumed_Inputs.Misc_Ground_Clearance, \
+                         PgenHourStatus)
 ts2=time.time_ns()
 print(ts2-ts1)

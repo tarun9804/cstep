@@ -569,41 +569,7 @@ def Inter_Row_Col_Spacing (Pgen_Window, Sun_Hour_Status, Pgen_Hour_Status, \
     Gt_Pgen_4hr = Gt*temp
     Drow[2] = np.max(Lrow*temp)
     Dcol [2] = np.max(Lcol*temp)
-    '''
-    for hour in range(len(Sun_Hour_Status)):
-        if Sun_Hour_Status [hour] == 1:
-            Lrow [hour] = n * Lmod * L_row_Factor [hour]
-            Lcol [hour] = n * Lmod * L_col_Factor [hour]
 
-        if Pgen_Hour_Status [hour] == 1:
-            Agg_R_Pmod [0] = Agg_R_Pmod [0] + R_Pmod [hour]
-            Annual_GenHr [0] = Annual_GenHr [0] + 1
-            Gt_Pgen [hour] = Gt [hour]
-            if Lrow [hour] > Drow [0]:
-                Drow [0] = Lrow [hour]
-            if Lcol [hour] > Dcol [0]:
-                Dcol [0] = Lcol [hour]
-
-        if (ZT_Day_Hour [hour] >= Pgen_2hr_Window [0]) and (ZT_Day_Hour [hour] <= \
-           Pgen_2hr_Window [1]):
-            Agg_R_Pmod [1] = Agg_R_Pmod [1] + R_Pmod [hour]
-            Annual_GenHr [1] = Annual_GenHr [1] + 1
-            Gt_Pgen_2hr [hour] = Gt [hour]
-            if Lrow [hour] > Drow [1]:
-                Drow [1] = Lrow [hour]
-            if Lcol [hour] > Dcol [1]:
-                Dcol [1] = Lcol [hour]
-
-        if (ZT_Day_Hour [hour] >= Pgen_4hr_Window [0]) and (ZT_Day_Hour [hour] <= \
-           Pgen_4hr_Window [1]):
-            Agg_R_Pmod [2] = Agg_R_Pmod [2] + R_Pmod [hour]
-            Annual_GenHr [2] = Annual_GenHr [2] + 1
-            Gt_Pgen_4hr [hour] = Gt [hour]
-            if Lrow [hour] > Drow [2]:
-                Drow [2] = Lrow [hour]
-            if Lcol [hour] > Dcol [2]:
-                Dcol [2] = Lcol [hour]
-    '''
     # Annaul radiation on the tilted panel in MW / sq.m
     An_Gt = np.zeros (3)
     An_Gt [0] = np.sum(Gt_Pgen)*1e-06#/1000000
@@ -614,6 +580,325 @@ def Inter_Row_Col_Spacing (Pgen_Window, Sun_Hour_Status, Pgen_Hour_Status, \
             Pgen_4hr_Window, Gt_Pgen, Gt_Pgen_2hr, Gt_Pgen_4hr, An_Gt)
 
 #-------- End of Inter-row and Inter-col spacing  function -------------------
+
+#------------------------------------------------------------------------------
+# Estimation of Plant area (includes spiral subfunction)
+#------------------------------------------------------------------------------
+#
+# Defining the rectangular spiral
+#
+def spiral (X):
+    #
+    # Basic initialisations
+    # .....................
+    # Coefficients for tracing area components of the block
+    A_LB = 0
+    A_LDc = 0
+    A_BDr = 0
+    #
+    # Coefficients for tracing transition set for LDc and BDr components
+    A_LDc_temp = 0
+    A_BDr_temp = 0
+    #
+    # Counter to trace the growth of units along length (y- axis) and
+    # rectangular matrix formation (Default assumption rectangular matrix)
+    R = 1
+    #
+    # Counter to trace the growth of units along breadth (x - axis) and
+    # square matrix formation
+    S = 0
+    #
+    # Counter to trace the second entity of the transition set
+    count = 0
+    #
+    No = 0      # Number of outlying units
+    NLe = 0     # No. of units along length contributing to enclosed set
+    NLo = 0     # No. of units along length contributing to outlying set
+    NBe = 0     # No. of units along breadth contributing to enclosed set
+    NBo = 0     # No. of units along breadth contributing to outlying set
+    #
+    # No.of inter-row spacing sec. along length contributing to enclosed set
+    Nre = 0
+    # No.of inter-row spacing sec. along length contributing to outlying set
+    Nro = 0
+    # No.of inter-col spacing sec. along breadth contributing to enclosed set
+    Nce = 0
+    # No.of inter-col spacing sec. along breadth contributing to outlying set
+    Nco = 0
+    #
+    # Flag to trace outlying set additon along length
+    L_flag = 0
+    # Flag to trace outlying set addition along breadth
+    B_flag = 0
+    #
+    # Tracing the growth along length and breadth to determine R, S
+    #
+    ii = 1
+    while ii<=X:
+        # Factoring area contribution by the unit itself
+        A_LB += 1
+        # Check if the no of units is a perfect square --> square matrix check
+        if np.sqrt(A_LB)% 1 == 0:
+            S += 1
+
+        # Underpinning condition to set the growth of matrix along length
+        # (y- axis) at X = 2 as a rectangular matrix and set the growth of
+        # inter-row spacing
+        if ii == 2:
+            A_BDr = 1
+            R += 1
+
+        # Accounting for inter-row & inter column spacing for successive block
+        if ii >= 3:
+            A_BDr_temp += 1
+            A_BDr = A_BDr_temp
+            A_LDc_temp += 1
+            A_LDc = A_LDc_temp
+            #
+            # At the end of every rectangular matrix, the area component LDc
+            # would be a perfect square, the next element would share the same
+            # LDc area component. These elements form the 'transition set(TS)'
+            # Listed transition sets X = 6,7; 12,13,; 21,20; ... The first
+            # number of the transition set forms a rectangular matrix. Hence R
+            # incremented by 1. Since the spacing is shared, the LDc and BDr
+            # component addition is reduced by 1 for the first element of the
+            # transition set and it is incremented by 1 for the second element
+            # of the transition set and the count proceeds.
+            #
+            if A_LDc > 1:
+                if np.sqrt(A_LDc_temp)%1.0 == 0 and count < 1:
+                    A_LDc_temp -= 1
+                    A_BDr_temp -= 1
+                    count += 1 # First element of TS traced
+                    R += 1
+
+                # Resetting the TS counter when crossing the 2nd element of TS
+                if np.sqrt(A_LDc_temp)%1.0 == 0 and count == 1:
+                    count = 0
+
+        ii += 1
+
+    # Estimating the number of outlying units
+    No = X - R*S
+    #
+    # If the enclosed set forms a perfect square: (R = S)
+    # The outlying units are added along the breadth till the TS is reached.
+    #
+    if R == S:
+        # Accounting for enclosed set
+        NLe = R
+        Nre = R - 1
+        NBe = S
+        Nce = S - 1
+        # Accounting for outlying set
+        if No > 0:
+            NLo = 1     # Fixing the dimension of units along length
+            NBo = No    # Tracing unit growth along breadth
+            Nro = NLo
+            Nco = NBo - 1
+            B_flag = 1
+
+
+    # If the enclosed set forms a perfect rectangle: (R > S)
+    # The outlying units are added along length till perfect square is reached.
+    #
+    if R > S:
+        NLe = R
+        Nre = R - 1
+        NBe = S
+        Nce = S - 1
+        #
+        # Accounting for outlying set
+        #
+        if No > 0:
+            NLo = No
+            NBo = 1
+            Nro = NLo - 1
+            Nco = NBo
+            L_flag = 1
+
+
+    # Consolidated coefficients
+    # Contribution due to units
+    LB = NLe * NBe + NLo * NBo
+    # Contribution due to unit breadth and inter-row spacing
+    BDrow = NBe * Nre + NBo * Nro
+    # Contribution due to unit length and inter-col spacing
+    LDcol = NLe * Nce + NLo * Nco
+
+    # Contribution due to inter-row and inter-col spacing.
+    # Initialising inter-row inter-col area component at X = 4 units onwards
+    if X < 4:
+        DrowDcol = 0
+
+    if X == 4:
+        DrowDcol = 1
+
+    if X > 4:
+        DrowDcol = Nre * Nce + Nro * Nco
+
+    return (NLe, NBe, NLo, NBo, Nre, Nce, Nro, Nco, L_flag, B_flag)
+
+#----------------End of spiral sub-function definition-------------------------
+
+#------------------------------------------------------------------------------
+#   Estimating Plant area
+#------------------------------------------------------------------------------
+
+def Plant_Area_Estimation (n, Lmod, Bmod, Module_Tilt, D_row, D_col, m, y_area, \
+                           N_PCU, BS_a, BS_b, P_plant, Pure_mod_area_acres, \
+                           Pgen_Window, Pgen_2hr_Window, Pgen_4hr_Window, \
+                           Gt_Pgen, Gt_Pgen_2hr, Gt_Pgen_4hr):
+
+    N_Time_Windows = len(D_row)
+
+    LArray_e = np.zeros (N_Time_Windows)
+    BArray_e = np.zeros (N_Time_Windows)
+    LArray_o = np.zeros (N_Time_Windows)
+    BArray_o = np.zeros (N_Time_Windows)
+    PCU_area = np.zeros (N_Time_Windows)
+    PCU_area_acres = np.zeros (N_Time_Windows)
+    L_PCU = np.zeros (N_Time_Windows)
+    B_PCU = np.zeros (N_Time_Windows)
+    Gross_PCU_area = np.zeros (N_Time_Windows)
+    Gross_PCU_area_acres = np.zeros (N_Time_Windows)
+
+    LPCU_e = np.zeros (N_Time_Windows)
+    BPCU_e = np.zeros (N_Time_Windows)
+    LPCU_o = np.zeros (N_Time_Windows)
+    BPCU_o = np.zeros (N_Time_Windows)
+    P_area = np.zeros (N_Time_Windows)
+    P_area_acres = np.zeros (N_Time_Windows)
+    L_P = np.zeros (N_Time_Windows)
+    B_P = np.zeros (N_Time_Windows)
+    Gross_P_area = np.zeros (N_Time_Windows)
+    Gross_P_area_acres = np.zeros (N_Time_Windows)
+
+    B_L_P = np.zeros (N_Time_Windows)
+    B_B_P = np.zeros (N_Time_Windows)
+    Total_Plant_area = np.zeros (N_Time_Windows)
+    Total_Plant_area_acres = np.zeros (N_Time_Windows)
+    Aux_P = np.zeros (N_Time_Windows)
+    Total_Plant_area_with_Aux = np.zeros (N_Time_Windows)
+    Total_Plant_area_with_Aux_acres = np.zeros (N_Time_Windows)
+    Del_Total_P_gross_P = np.zeros (N_Time_Windows)
+    Del_Total_P_Aux_Total_P = np.zeros (N_Time_Windows)
+    Aspect_ratio = np.zeros (N_Time_Windows)
+    Packing_density_net = np.zeros (N_Time_Windows)
+    Packing_density_gross  = np.zeros (N_Time_Windows)
+    Packing_density_Total_aux = np.zeros (N_Time_Windows)
+    Deviation_Factor_Total_aux = np.zeros (N_Time_Windows)
+
+    Abs_Deviation = np.zeros(N_Time_Windows)
+    Gt_TW = np.zeros(row_count)
+    CERC_Benchmark = 5
+
+    # Application of ulam spiral for placement of arrays for a PCU block
+    NLe_PCU, NBe_PCU, NLo_PCU, NBo_PCU, Nre_PCU, Nce_PCU, Nro_PCU, Nco_PCU, \
+    L_flag_PCU, B_flag_PCU =  spiral (y_area)
+
+    # Calculating the base length and breadth dimensions of an array
+    L = n * Lmod * np.cos(np.deg2rad(Module_Tilt))
+    B = m * Bmod
+
+    ii = 0
+    # Calculating the PCU block dimensions and area
+    while ii < N_Time_Windows:
+        LArray_e [ii] = NLe_PCU * L + Nre_PCU * D_row [ii]
+        BArray_e [ii] = NBe_PCU * B + Nce_PCU * D_col [ii]
+        LArray_o [ii] = NLo_PCU * L + Nro_PCU * D_row [ii]
+        BArray_o [ii] = NBo_PCU * B + Nco_PCU * D_col [ii]
+        PCU_area [ii] = LArray_e [ii] * BArray_e [ii] + LArray_o [ii] * BArray_o [ii]
+        PCU_area_acres [ii] = PCU_area [ii] * 0.00024710
+        L_PCU [ii] = LArray_e [ii] + B_flag_PCU * (L + D_row [ii])
+        B_PCU [ii] = BArray_e [ii] + L_flag_PCU * (B + D_col [ii])
+        Gross_PCU_area [ii] = L_PCU [ii] * B_PCU [ii]
+        Gross_PCU_area_acres [ii] = Gross_PCU_area [ii] * 0.00024710
+        ii += 1
+
+    # Application of Ulam Spiral for placement of PCU block for the plant
+    NLe_P, NBe_P, NLo_P, NBo_P, Nre_P, Nce_P, Nro_P, Nco_P, L_flag_P, B_flag_P = spiral (N_PCU)
+    ii = 0
+    #
+    # Calculating plant dimensions and area
+    while ii < N_Time_Windows:
+        LPCU_e [ii] = NLe_P * L_PCU [ii] + Nre_P * D_row [ii]
+        BPCU_e [ii] = NBe_P * B_PCU [ii] + Nce_P * D_col [ii]
+        LPCU_o [ii] = NLo_P * L_PCU [ii] + Nro_P * D_row [ii]
+        BPCU_o [ii] = NBo_P * B_PCU [ii] + Nco_P * D_col [ii]
+        P_area [ii] = LPCU_e [ii] * BPCU_e [ii] + LPCU_o [ii] * BPCU_o [ii]     # Net Plant Area in sq.m
+        P_area_acres [ii] = P_area [ii]* 0.00024710                             # Net Plant Area in acres
+        L_P [ii] = LPCU_e [ii] + B_flag_P * (L_PCU [ii] + D_row [ii])
+        B_P [ii] = BPCU_e [ii] + L_flag_P * (B_PCU [ii] + D_col [ii])
+        Gross_P_area [ii] = L_P [ii] * B_P [ii]                                 # Effective or Gross Plant Area in sq.m
+        Gross_P_area_acres [ii] = Gross_P_area [ii] * 0.00024710                # Effective or Gross Plant Area in acres
+        ii += 1
+
+    ii = 0
+    # Application of boundary area and auxiliary area of plant
+    while ii < N_Time_Windows:
+        B_L_P [ii] = 2 * BS_b * (L_P[ii] + 2 * BS_a)
+        B_B_P [ii] = 2 * BS_a * B_P[ii]
+        Total_Plant_area [ii] = B_L_P[ii] + B_B_P[ii] + Gross_P_area[ii]
+        Total_Plant_area_acres [ii] = Total_Plant_area [ii] * 0.00024710
+        if P_plant <= 1:
+            Aux_P [ii] = 0.165 * Total_Plant_area [ii]
+        elif P_plant > 1 and P_plant <= 100:
+            Aux_P [ii] = 0.16273 * np.exp(-0.027 * P_plant) * Total_Plant_area[ii]
+        else:
+            Aux_P [ii] = 0.01 * Total_Plant_area [ii]
+
+        # Estimating total plant area with auxiliary area requirements
+        Total_Plant_area_with_Aux [ii] = Total_Plant_area [ii] + Aux_P [ii]
+        Total_Plant_area_with_Aux_acres [ii] = Total_Plant_area_with_Aux [ii] * 0.00024710
+        #
+        # Accounting for excess auxiliary area
+        Del_Total_P_gross_P [ii] = Total_Plant_area_acres [ii] - Gross_P_area_acres [ii]
+        Del_Total_P_Aux_Total_P [ii] = Total_Plant_area_with_Aux_acres [ii] - Total_Plant_area_acres [ii]
+        #
+        if Del_Total_P_gross_P [ii] >= Del_Total_P_Aux_Total_P[ii]:
+            Total_Plant_area_with_Aux_acres [ii] = Total_Plant_area_acres [ii]
+        elif Del_Total_P_gross_P [ii] < Del_Total_P_Aux_Total_P[ii]:
+            Total_Plant_area_with_Aux_acres [ii] = Gross_P_area_acres [ii] + Del_Total_P_Aux_Total_P[ii]
+
+        ii += 1
+
+    # Area related metrics
+    ii = 0
+    while ii < N_Time_Windows:
+        #
+        # Spiral related metrics
+        Aspect_ratio [ii] = L_P[ii]/B_P[ii]
+        Packing_density_net [ii] = Pure_mod_area_acres/P_area_acres[ii]
+        Packing_density_gross [ii] = Pure_mod_area_acres/Gross_P_area_acres[ii]
+        Packing_density_Total_aux [ii] = Pure_mod_area_acres/Total_Plant_area_with_Aux_acres [ii]
+        Deviation_Factor_Total_aux [ii] = (Total_Plant_area_with_Aux_acres [ii] - P_plant*CERC_Benchmark)/(P_plant*CERC_Benchmark)
+        ii += 1
+
+    # Selection of time window of interest
+    Abs_Deviation = np.absolute(Deviation_Factor_Total_aux)
+    TW = 0
+    Del_BA_TA_TW = 999
+
+    for i in range(N_Time_Windows):
+        if Abs_Deviation [i] < Del_BA_TA_TW :
+            Del_BA_TA_TW = Abs_Deviation [i]
+            TW = i
+        if TW == 0:
+            TW_DayHrs = (Pgen_Window [0], Pgen_Window [1])
+            Gt_TW = Gt_Pgen
+        elif TW == 1:
+            TW_DayHrs = (Pgen_2hr_Window [0], Pgen_2hr_Window [1])
+            Gt_TW = Gt_Pgen_2hr
+        elif TW == 2:
+            TW_DayHrs = (Pgen_4hr_Window [0], Pgen_4hr_Window [1])
+            Gt_TW = Gt_Pgen_4hr
+
+
+    return (Total_Plant_area_with_Aux_acres, Packing_density_Total_aux, \
+            Deviation_Factor_Total_aux, TW, TW_DayHrs, Gt_TW )
+
+#------------------------ End of Plant area estimation function ---------------
 
 
 
@@ -725,6 +1010,22 @@ GtPgen2hr, GtPgen4hr, AnGt = \
         Inter_Row_Col_Spacing (PgenWindow, SunHourStatus, PgenHourStatus, \
                            ZTDayHour, LrowFactor, LcolFactor, n, \
                            ui.User_Assumed_Inputs.Module_Lmod, RPmod, Gt)
+
+ts2=time.time_ns()
+print(ts2-ts1)
+
+# Calling the function that estimates plant area, packing density and suitable
+# time window
+ts1=time.time_ns()
+PlantArea, PackingDensity, DeviationFactor, TW, TW_DayHrs, Gt_TW = \
+                Plant_Area_Estimation (n, ui.User_Assumed_Inputs.Module_Lmod, \
+                       ui.User_Assumed_Inputs.Module_Bmod, \
+                       ui.User_Assumed_Inputs.Module_Tilt, \
+                       Drow, Dcol, m, y_area, N_PCU, \
+                       ui.User_Assumed_Inputs.Misc_BS_AlongL_a, \
+                       ui.User_Assumed_Inputs.Misc_BS_AlongB_b, \
+                       Pplant, PureModAreaAcres, PgenWindow, Pgen2hrWindow,\
+                       Pgen4hrWindow, GtPgen, GtPgen2hr, GtPgen4hr )
 
 ts2=time.time_ns()
 print(ts2-ts1)

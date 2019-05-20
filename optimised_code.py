@@ -962,6 +962,81 @@ def Plant_output_year_0 (TW, An_Gt, Pure_Mod_Area, SL_PC, EL_PC, TW_DayHrs, \
 
 #------------------------ End of Plant output for year 0 function -------------
 
+#------------------------------------------------------------------------------
+# Estimation of Plant output factoring module degradation
+#------------------------------------------------------------------------------
+#
+def Degradation_Results (BaseDegRate, Plant_Life, Pmod, Mod_Rating_EoY1, \
+                        N_Plant, Agg_R_Pmod, Eta_PCU, SL_PC, EL_PC, P_plant, \
+                        Pure_Mod_Area, An_Gt):
+    Degradation_Rates = np.array([-0.005, BaseDegRate, -0.01, -0.015, -0.02, \
+                                  -0.025, -0.03, -0.035, -0.04])
+
+    Degradation_Rates = sorted (Degradation_Rates, reverse = True)
+    Base_DegCase_Index = Degradation_Rates.index(BaseDegRate)
+
+    Agg_Gt_all_Modules = np.zeros(3)
+
+    Net_module_rating = np.zeros((len(Degradation_Rates), Plant_Life + 1))
+    Module_Rating_PC = np.zeros((len(Degradation_Rates), Plant_Life + 1))
+    Annual_PV_Gen_Deg = np.zeros((3,len(Degradation_Rates), Plant_Life + 1))
+    Annual_CUF_PV = np.zeros((3,len(Degradation_Rates), Plant_Life + 1))
+    Annual_PR_PV = np.zeros((3,len(Degradation_Rates), Plant_Life + 1))
+    Annual_SEE_PV = np.zeros((3,len(Degradation_Rates), Plant_Life + 1))
+
+    Agg_RPF = np.zeros(3)
+
+    for i in range(3):
+        Agg_Gt_all_Modules [i] = An_Gt[i] * Pure_Mod_Area
+        Agg_RPF [i] = N_Plant * Agg_R_Pmod [i] * (1 - SL_PC) * (1 - EL_PC) * \
+                   Eta_PCU*1e-06 #1000000
+
+
+    for Deg_ind in range (len(Degradation_Rates)):
+        for yr in range (0, Plant_Life + 1):
+            if yr == 0:
+                Module_Rating_PC [Deg_ind][yr] = 1
+                Net_module_rating [Deg_ind][yr] = Pmod
+
+            elif yr == 1:
+                Module_Rating_PC [Deg_ind][yr] = Mod_Rating_EoY1
+                Net_module_rating [Deg_ind][yr] = Pmod * \
+                                                Module_Rating_PC [Deg_ind][yr]
+
+            elif yr > 1:
+                Module_Rating_PC [Deg_ind][yr] = \
+                Module_Rating_PC [Deg_ind][yr - 1] + Degradation_Rates [Deg_ind]
+                Net_module_rating [Deg_ind][yr] = Pmod * \
+                                                Module_Rating_PC [Deg_ind][yr]
+
+    for TimeWindow in range(3):
+        for Deg_ind in range(0, len(Degradation_Rates)):
+            for yr in range(0, Plant_Life + 1):
+                Annual_PV_Gen_Deg [TimeWindow][Deg_ind][yr] = \
+                    Net_module_rating [Deg_ind][yr] * Agg_RPF [TimeWindow]
+
+                Annual_CUF_PV [TimeWindow][Deg_ind][yr] = \
+                    Annual_PV_Gen_Deg [TimeWindow][Deg_ind][yr] /(8760 * Pplant)
+
+                Annual_PR_PV [TimeWindow][Deg_ind][yr] = \
+                    Annual_PV_Gen_Deg [TimeWindow][Deg_ind][yr]*1000 / \
+                    (An_Gt [TimeWindow] \
+                            * N_Plant * Net_module_rating [Deg_ind][yr] )
+
+                Annual_SEE_PV [TimeWindow][Deg_ind][yr] = \
+                    Annual_PV_Gen_Deg [TimeWindow][Deg_ind][yr] / \
+                                    (Agg_Gt_all_Modules [TimeWindow])
+
+    return (Degradation_Rates, Base_DegCase_Index, Agg_RPF, Annual_PV_Gen_Deg,\
+            Net_module_rating, Annual_CUF_PV, Module_Rating_PC, Annual_PR_PV, \
+            Annual_SEE_PV)
+
+# the financial model uses only generation (Annual_PV_Gen_Deg)
+# for time window = TW, and base degradation case index = Base_DegCase_Index
+
+# -------------------------- end of degradation results function --------------
+
+
 
 
 ui.User_Assumed_Inputs()
@@ -1107,3 +1182,19 @@ AnPRPV, AnCUFPV,  AnSEEPV = Plant_output_year_0 (TW, AnGt, PureModArea, \
 
 ts2=time.time_ns()
 print((ts2-ts1)/1e6,"- Plant_output_year_0(ms)")
+
+# Calling the function that estimates the PV plant output factoring
+# Module degradation
+ts1=time.time_ns()
+DegradationRates, BaseDegCaseIndex, AggRPF, AnnualPVGenDeg, NetModuleRating, \
+AnnualCUFPV, ModuleRatingPC, AnnualPRPV, AnnualSEEPV  = Degradation_Results\
+                     (ui.User_Assumed_Inputs.Module_YoY_Degrdn_rate, \
+                      ui.User_Assumed_Inputs.Plant_Life, \
+                      ui.User_Assumed_Inputs.Module_Pmod, \
+                      ui.User_Assumed_Inputs.Module_Rating_EoYr1, \
+                      NPlant, AggRPmod,\
+                      ui.User_Assumed_Inputs.PCU_Efficiency, \
+                      ui.User_Assumed_Inputs.Misc_SL_PC, \
+                      ui.User_Assumed_Inputs.Misc_EL_PC, Pplant, PureModArea, AnGt)
+ts2=time.time_ns()
+print((ts2-ts1)/1e6,"- Degradation_Results(ms)")

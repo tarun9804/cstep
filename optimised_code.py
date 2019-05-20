@@ -900,12 +900,72 @@ def Plant_Area_Estimation (n, Lmod, Bmod, Module_Tilt, D_row, D_col, m, y_area, 
 
 #------------------------ End of Plant area estimation function ---------------
 
+#------------------------------------------------------------------------------
+# Estimation of Plant output
+#------------------------------------------------------------------------------
+#
+def Plant_output_year_0 (TW, An_Gt, Pure_Mod_Area, SL_PC, EL_PC, TW_DayHrs, \
+                         N_Plant, ZT_Day_Hour, R_Pmod, Pmod, Eta_PCU, \
+                         P_plant, Gt_TW):
+
+    # Data initialisation
+    #TW_Status = np.zeros(len(Gt_TW))
+
+    #R_Pplant_TW = np.zeros (len(Gt_TW))
+    #Pmod_out = np.zeros (len(Gt_TW))
+    #P_plant_PV_DC = np.zeros (len(Gt_TW))
+    #P_plant_PV_DC_inc_SL = np.zeros (len(Gt_TW))
+    #P_plant_PV_AC = np.zeros (row_count)
+    Agg_R_Pplant_AC_TW = 0.0
+    #Hourly_Gt_all_pmod = np.zeros(len(Gt_TW))
+    #Hourly_Gen_PC = np.zeros(len(Gt_TW))
+    #Hourly_SEE_PV = np.zeros (len(Gt_TW))
+
+    # Aggregate solar radiation incident on solar panels in MW/sq.m
+    Agg_Gt_all_modules_TW = An_Gt [TW] * Pure_Mod_Area
+
+    Soiling_Loss_Factor = 1 - SL_PC
+    Electrical_Loss_Factor = 1 - EL_PC
+
+    hour = (ZT_Day_Hour >= TW_DayHrs[0])*(ZT_Day_Hour <=TW_DayHrs [1])
+    R_Pplant_TW = N_Plant * R_Pmod * hour * 1e-06
+    Pmod_out = Pmod * R_Pmod * hour
+    P_plant_PV_DC = Pmod * R_Pplant_TW * hour
+    P_plant_PV_DC_inc_SL = P_plant_PV_DC * hour * Soiling_Loss_Factor
+    P_plant_PV_AC = P_plant_PV_DC_inc_SL * hour * Electrical_Loss_Factor * Eta_PCU
+    Hourly_Gen_PC = (P_plant_PV_AC * hour)/P_plant
+    Hourly_Gt_all_pmod = Gt_TW * hour * Pure_Mod_Area * 1e-06
+    temp = (Gt_TW*hour!=0)
+    temp1=Hourly_Gt_all_pmod
+    Hourly_Gt_all_pmod[temp==False] = 1
+    Hourly_SEE_PV = (temp*P_plant_PV_AC)/Hourly_Gt_all_pmod
+    Hourly_Gt_all_pmod[temp==False] = 0
+
+    Agg_R_Pplant_AC_TW = np.sum(R_Pplant_TW * Soiling_Loss_Factor * \
+                            Electrical_Loss_Factor * Eta_PCU)
+    # Annual parameters in MWh
+    An_Pplant_DC = np.sum(P_plant_PV_DC)
+    An_Pplant_DC_inc_SL = np.sum(P_plant_PV_DC_inc_SL)
+    An_Pplant_AC = np.sum(P_plant_PV_AC)
+    An_soiling_loss = An_Pplant_DC - An_Pplant_DC_inc_SL
+    An_electrical_loss = An_Pplant_DC_inc_SL - An_Pplant_AC
+
+    An_PR_PV = (An_Pplant_AC * 1000)/ (An_Gt [TW] * N_Plant * Pmod )
+    An_CUF_PV = An_Pplant_AC / (8760 * P_plant)
+    An_SEE_PV = An_Pplant_AC / (Agg_Gt_all_modules_TW)
+
+    # Adding An_Pplant_DC_inc_SL in the return list, 8 May 2019
+    return (Hourly_Gen_PC, Hourly_SEE_PV, Hourly_Gt_all_pmod, \
+            P_plant_PV_AC, Agg_Gt_all_modules_TW, An_Pplant_DC, \
+            An_Pplant_DC_inc_SL, An_Pplant_AC, An_soiling_loss, \
+            An_electrical_loss, An_PR_PV, An_CUF_PV, An_SEE_PV)
+
+#------------------------ End of Plant output for year 0 function -------------
+
 
 
 ui.User_Assumed_Inputs()
-
 ts1=time.time_ns()
-
 ZoneTime, ZTDayHour,SolarTime, STAng_Hour_f, STAngSolAltitude, \
             STAngSolAzimuth, STAngIncidence, SunHourStatus,\
             AnnualSunHours,CorrectionHHMMSS, ZTTrise, ZTTset, STDayLength,\
@@ -919,7 +979,7 @@ ZoneTime, ZTDayHour,SolarTime, STAng_Hour_f, STAngSolAltitude, \
                                     ui.User_Assumed_Inputs.Reference_Latitude, \
                                     ui.User_Assumed_Inputs.Reference_Longitude)
 ts2=time.time_ns()
-print(ts2-ts1)
+print((ts2-ts1)/1e6,"- ZoneTime_SolarAngles(ms)")
 
 
 ts1=time.time_ns()
@@ -937,15 +997,17 @@ AnAgGHI, AnAgDHI, AnAgDNI, AnAgSunHours, MaxTambSH, MinTambSH, AveTambSH, \
                                    SunHourStatus, SunWindow, \
                                    ZTDayHour)
 ts2=time.time_ns()
-print(ts2-ts1)
-ts1=time.time_ns()
+print((ts2-ts1)/1e6,"- Resource_Estimation(ms)")
+
 # Calling Function that estimates spacing factor and generation hours
+ts1=time.time_ns()
 PgenHourStatus, PgenDayHour, LrowFactor, LcolFactor, PgenWindow, \
     AnnualPgenHours = Spacing_Factor(ui.User_Assumed_Inputs.Module_Tilt, \
                                        STAngSolAzimuth, STAngSolAltitude, \
                                        ZTDayHour)
 ts2=time.time_ns()
-print(ts2-ts1)
+print((ts2-ts1)/1e6,"- Spacing_Factor(ms)")
+
 # Calling Function that estimates net effective radiation
 ts1=time.time_ns()
 Gt, n, AnnualGt = Net_Effective_Radiation (ui.User_Assumed_Inputs.Module_Tilt, \
@@ -956,7 +1018,7 @@ Gt, n, AnnualGt = Net_Effective_Radiation (ui.User_Assumed_Inputs.Module_Tilt, \
                          ui.User_Assumed_Inputs.Misc_Ground_Clearance, \
                          PgenHourStatus)
 ts2=time.time_ns()
-print(ts2-ts1)
+print((ts2-ts1)/1e6,"- Net_Effective_Radiation(ms)")
 
 # Calling Function that estimates cell temperature and resource to
 # module power function
@@ -973,7 +1035,7 @@ ModTCell, ModIsc, ModVoc, RPmod, AggRPmod = \
                          ui.User_Assumed_Inputs.Module_Isc, \
                          ui.User_Assumed_Inputs.Module_Voc)
 ts2=time.time_ns()
-print(ts2-ts1)
+print((ts2-ts1)/1e6,"- Tcell_ResToModPower(ms)")
 
 # Calling function that estimates the plant sizing parameters
 # This function optimises the plant design to generate maximum power for the
@@ -999,7 +1061,7 @@ PplantPCU, OriginalPplant, PmaxDeviationNewCap, P_PCU_DCMax = \
                          ui.User_Assumed_Inputs.PCU_Vmppmax, \
                          ui.User_Assumed_Inputs.PCU_Vmppmin)
 ts2=time.time_ns()
-print(ts2-ts1)
+print((ts2-ts1)/1e3,"- Plant_Sizing_Parameters(micro sec)")
 
 # Calling the function that estimates inter-row, inter-column spacing;
 # aggregate resource to module power factor and annual generation hours
@@ -1012,7 +1074,7 @@ GtPgen2hr, GtPgen4hr, AnGt = \
                            ui.User_Assumed_Inputs.Module_Lmod, RPmod, Gt)
 
 ts2=time.time_ns()
-print(ts2-ts1)
+print((ts2-ts1)/1e6,"- Inter_Row_Col_Spacing(ms)")
 
 # Calling the function that estimates plant area, packing density and suitable
 # time window
@@ -1028,4 +1090,20 @@ PlantArea, PackingDensity, DeviationFactor, TW, TW_DayHrs, Gt_TW = \
                        Pgen4hrWindow, GtPgen, GtPgen2hr, GtPgen4hr )
 
 ts2=time.time_ns()
-print(ts2-ts1)
+print((ts2-ts1)/1e3,"- Plant_Area_Estimation(micro sec)")
+
+# Calling the function that estimates plant generation in year 0 and other
+# performance metrics
+ts1=time.time_ns()
+HourlyGenPC, HourlySEEPV, HourlyGtallpmod, PplantPVAC, AggGtallmodulesTW, \
+AnPplantDC, AnPplantDCincSL, AnPplantAC, AnSoilingLoss, AnElectricalLoss, \
+AnPRPV, AnCUFPV,  AnSEEPV = Plant_output_year_0 (TW, AnGt, PureModArea, \
+                                 ui.User_Assumed_Inputs.Misc_SL_PC, \
+                                 ui.User_Assumed_Inputs.Misc_EL_PC, \
+                                 TW_DayHrs, NPlant, ZTDayHour, RPmod, \
+                                 ui.User_Assumed_Inputs.Module_Pmod, \
+                                 ui.User_Assumed_Inputs.PCU_Efficiency,\
+                                 Pplant, Gt_TW)
+
+ts2=time.time_ns()
+print((ts2-ts1)/1e6,"- Plant_output_year_0(ms)")

@@ -1069,6 +1069,97 @@ def Monthly_Daily_Gen_Hist1 (P_plant_PV_AC, ZT_Day_Hour, P_plant_PCU, \
 #---End of function which estimates monthly and daily gen and hist 1-----------
 
 
+#------------------------------------------------------------------------------
+# Histogram of power generation vs hour of the day
+#------------------------------------------------------------------------------
+#
+def Gen_vs_DayHr_Hist2 (P_plant_PV_AC):
+
+    Gen_PV_AC_TW_24x365 = P_plant_PV_AC.reshape(365, -1)
+    Gen_PV_AC_TW_24x365_T = Gen_PV_AC_TW_24x365.transpose()
+    Min_Gen_PV_AC_TW_24x365 = \
+            np.min(Gen_PV_AC_TW_24x365_T.reshape(24,-1), axis = 1)
+    Max_Gen_PV_AC_TW_24x365 = \
+            np.max(Gen_PV_AC_TW_24x365_T.reshape(24,-1), axis = 1)
+    Mean_Gen_PV_AC_TW_24x365 = \
+            np.mean(Gen_PV_AC_TW_24x365_T.reshape(24,-1), axis = 1)
+
+    # Added sum and percentage share of hourly generation on 6 May 2019
+    Sum_Gen_PV_AC_TW_24x365 = \
+        np.sum(Gen_PV_AC_TW_24x365_T.reshape(24, -1), axis = 1)
+
+    PC_Share_Gen_AC_TW_24x365 = \
+        Sum_Gen_PV_AC_TW_24x365/sum(Sum_Gen_PV_AC_TW_24x365)
+
+
+    return(Gen_PV_AC_TW_24x365, Gen_PV_AC_TW_24x365_T, Min_Gen_PV_AC_TW_24x365,\
+            Max_Gen_PV_AC_TW_24x365, Mean_Gen_PV_AC_TW_24x365, \
+            Sum_Gen_PV_AC_TW_24x365, PC_Share_Gen_AC_TW_24x365 )
+
+
+
+#----------------End of function Gen_vs_DayHr_Hist2 ---------------------------
+
+def Misc_Tech_Parameters (Plant_Area, An_PV_Gen_Deg, TW, \
+                          Base_Deg_Ind, An_Gt, An_Gen_Hr, \
+                          Hr_Gen_PC, Hr_Gtallmod, Hr_SEE_PV, Gt_TW):
+
+    An_PV_Gen_per_acre = np.zeros(len(Plant_Area))
+
+    # Creating 24x365 matrix for hourly generation percentage, solar to electric
+    # efficiency and incident radiation on titled panel, added on 7 May 2019
+    Gen_PC_TW_24x365 = Hr_Gen_PC.reshape(365, -1)
+    Gen_PC_TW_24x365_T = Gen_PC_TW_24x365.transpose()
+
+    Gtallmod_TW_24x365 = Hr_Gtallmod.reshape(365, -1)
+    Gtallmod_TW_24x365_T = Gtallmod_TW_24x365.transpose()
+
+    SEE_PV_TW_24x365 = Hr_SEE_PV.reshape(365, -1)
+    SEE_PV_TW_24x365_T = SEE_PV_TW_24x365.transpose()
+
+
+    for i in range(len(Plant_Area)):
+        An_PV_Gen_per_acre [i] = \
+            An_PV_Gen_Deg [i][Base_Deg_Ind][0] / Plant_Area [i]
+
+    Area_Pgen_Pgen2hr_Factor = Plant_Area [0] / Plant_Area [1]
+    Area_Pgen2hr_Pgen4hr_Factor = Plant_Area [1] / Plant_Area [2]
+    Area_Pgen_Pgen4hr_Factor = Plant_Area [0] / Plant_Area [2]
+
+    Gt_Pgen_Pgen2hr_Factor = An_Gt [0] / An_Gt [1]
+    Gt_Pgen2hr_Pgen4hr_Factor = An_Gt [1] / An_Gt [2]
+    Gt_Pgen_Pgen4hr_Factor = An_Gt [0] / An_Gt [2]
+
+    Gen_Pgen_Pgen2hr_Factor = \
+        An_PV_Gen_Deg [0][Base_Deg_Ind][0] / An_PV_Gen_Deg [1][Base_Deg_Ind][0]
+    Gen_Pgen2hr_Pgen4hr_Factor = \
+        An_PV_Gen_Deg [1][Base_Deg_Ind][0] / An_PV_Gen_Deg [2][Base_Deg_Ind][0]
+    Gen_Pgen_Pgen4hr_Factor = \
+        An_PV_Gen_Deg [0][Base_Deg_Ind][0] / An_PV_Gen_Deg [2][Base_Deg_Ind][0]
+
+    Gen_PC_Pgen2hr_Pgen = \
+        An_PV_Gen_Deg [1][Base_Deg_Ind][0] / An_PV_Gen_Deg [0][Base_Deg_Ind][0]
+
+    Gen_PC_Pgen4hr_Pgen = \
+        An_PV_Gen_Deg [2][Base_Deg_Ind][0] / An_PV_Gen_Deg [0][Base_Deg_Ind][0]
+
+    # Generation hour factor, added on 7 May 2019
+    GenHr_Pgen_Pgen2hr_Factor = An_Gen_Hr [0] / An_Gen_Hr [1]
+    GenHr_Pgen2hr_Pgen4hr_Factor = An_Gen_Hr [1] / An_Gen_Hr [2]
+    GenHr_Pgen_Pgen4hr_Factor = An_Gen_Hr [0] / An_Gen_Hr [2]
+
+    return (An_PV_Gen_per_acre, Area_Pgen_Pgen2hr_Factor, \
+            Area_Pgen2hr_Pgen4hr_Factor, Area_Pgen_Pgen4hr_Factor, \
+            Gt_Pgen_Pgen2hr_Factor, Gt_Pgen2hr_Pgen4hr_Factor, \
+            Gt_Pgen_Pgen4hr_Factor, Gen_Pgen_Pgen2hr_Factor, \
+            Gen_Pgen2hr_Pgen4hr_Factor, Gen_Pgen_Pgen4hr_Factor, \
+            Gen_PC_Pgen2hr_Pgen, Gen_PC_Pgen4hr_Pgen, GenHr_Pgen_Pgen2hr_Factor, \
+            GenHr_Pgen2hr_Pgen4hr_Factor, GenHr_Pgen_Pgen4hr_Factor, \
+            Gen_PC_TW_24x365_T, Gtallmod_TW_24x365_T, SEE_PV_TW_24x365_T)
+
+#--------- End of function which calculates misc parameters for tech model-----
+
+
 
 
 ui.User_Assumed_Inputs()
@@ -1168,7 +1259,7 @@ PplantPCU, OriginalPplant, PmaxDeviationNewCap, P_PCU_DCMax = \
                          ui.User_Assumed_Inputs.PCU_Vmppmax, \
                          ui.User_Assumed_Inputs.PCU_Vmppmin)
 ts2=time.time_ns()
-print((ts2-ts1)/1e3,"- Plant_Sizing_Parameters(micro sec)")
+print((ts2-ts1)/1e3,"- Plant_Sizing_Parameters(microseconds)")
 
 # Calling the function that estimates inter-row, inter-column spacing;
 # aggregate resource to module power factor and annual generation hours
@@ -1197,7 +1288,7 @@ PlantArea, PackingDensity, DeviationFactor, TW, TW_DayHrs, Gt_TW = \
                        Pgen4hrWindow, GtPgen, GtPgen2hr, GtPgen4hr )
 
 ts2=time.time_ns()
-print((ts2-ts1)/1e3,"- Plant_Area_Estimation(micro sec)")
+print((ts2-ts1)/1e3,"- Plant_Area_Estimation(microseconds)")
 
 # Calling the function that estimates plant generation in year 0 and other
 # performance metrics
@@ -1238,3 +1329,24 @@ PVGenYr0Daily, PVGenYr0Monthly, GenHrsYr0TWPC, AgGenHrs1to100PCTW \
      = Monthly_Daily_Gen_Hist1 (PplantPVAC, ZTDayHour, PplantPCU, ZoneTime)
 ts2=time.time_ns()
 print((ts2-ts1)/1e6,"- Monthly_Daily_Gen_Hist1(ms)")
+
+ts1=time.time_ns()
+GenPVACTW24x365, GenPVACTW24x365T, MinGenPVACTW24x365, MaxGenPVACTW24x365, \
+    MeanGenPVACTW24x365, SumGenPVACTW24x365, PCShareGenACTW24x365 \
+    = Gen_vs_DayHr_Hist2 (PplantPVAC)
+ts2=time.time_ns()
+print((ts2-ts1)/1e3,"- Gen_vs_DayHr_Hist2(microseconds)")
+
+# Calling the function estimating miscellaneous parameters in the tech model
+ts1=time.time_ns()
+AnPVGenPerAcre, AreaPgenPgen2hrFactor, AreaPgen2hrPgen4hrFactor, \
+ AreaPgenPgen4hrFactor, GtPgenPgen2hrFactor, GtPgen2hrPgen4hrFactor, \
+ GtPgenPgen4hrFactor, GenPgenPgen2hrFactor, GenPgen2hrPgen4hrFactor, \
+ GenPgenPgen4hrFactor, GenPCPgen2hrPgen, GenPCPgen4hrPgen, \
+ GenHrPgenPgen2hrFactor, GenHrPgen2hrPgen4hrFactor, GenHrPgenPgen4hrFactor, \
+ GenPCTW24x365T, GtallmodTW24x365T, SEEPVTW24x365T \
+ = Misc_Tech_Parameters (PlantArea, AnnualPVGenDeg, TW, \
+                          BaseDegCaseIndex, AnGt, AnnualGenHr,  HourlyGenPC, \
+                          HourlyGtallpmod, HourlySEEPV, Gt_TW)
+ts2=time.time_ns()
+print((ts2-ts1)/1e3,"- Misc_Tech_Parameters(microseconds)")

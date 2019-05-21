@@ -30,6 +30,22 @@ def getEOT(x):
 def getAngDeclination(x):
     return ((57.29577951308232)*(0.006918 - 0.399912 * np.cos(x) + 0.070257 * np.sin(x) - 0.006758 * np.cos(2*x) + 0.000907 * np.sin(2*x) - 0.002697 * np.cos(3*x) + 0.00148 * np.sin(3*x)))
 
+def monthorder(x):
+    month = [31,59,90,120,151,181,212,243,273,304,334]
+    temp=np.zeros((12,31))
+    temp[0]=x[0:month[0]]
+    temp[1,0:28]=x[month[0]:month[1]]
+    temp[2]=x[month[1]:month[2]]
+    temp[3,0:30]=x[month[2]:month[3]]
+    temp[4]=x[month[3]:month[4]]
+    temp[5,0:30]=x[month[4]:month[5]]
+    temp[6]=x[month[5]:month[6]]
+    temp[7]=x[month[6]:month[7]]
+    temp[8,0:30]=x[month[7]:month[8]]
+    temp[9]=x[month[8]:month[9]]
+    temp[10,0:30]=x[month[9]:month[10]]
+    temp[11]=x[month[10]:]
+    return temp
 
 
 
@@ -311,22 +327,7 @@ def Resource_Estimation(ghi,dhi,dni,ws,tamb,shs,sw,zdh):
     Day_Max_Tamb = np.max(np.reshape(ta,(365,24)),axis=1)
     Day_Min_Tamb = np.min(np.reshape(ta,(365,24)),axis=1)
 
-    def monthorder(x):
-        month = [31,59,90,120,151,181,212,243,273,304,334]
-        temp=np.zeros((12,31))
-        temp[0]=x[0:month[0]]
-        temp[1,0:28]=x[month[0]:month[1]]
-        temp[2]=x[month[1]:month[2]]
-        temp[3,0:30]=x[month[2]:month[3]]
-        temp[4]=x[month[3]:month[4]]
-        temp[5,0:30]=x[month[4]:month[5]]
-        temp[6]=x[month[5]:month[6]]
-        temp[7]=x[month[6]:month[7]]
-        temp[8,0:30]=x[month[7]:month[8]]
-        temp[9]=x[month[8]:month[9]]
-        temp[10,0:30]=x[month[9]:month[10]]
-        temp[11]=x[month[10]:]
-        return temp
+
 
     Mon_Ag_GHI=np.sum(monthorder(Day_Ag_GHI),axis=1)
     Mon_Ag_DNI=np.sum(monthorder(Day_Ag_DNI),axis=1)
@@ -1036,6 +1037,37 @@ def Degradation_Results (BaseDegRate, Plant_Life, Pmod, Mod_Rating_EoY1, \
 
 # -------------------------- end of degradation results function --------------
 
+#------------------------------------------------------------------------------
+# Estimating monthly, daily aggregate gen, Histogram for frequency of gen
+#------------------------------------------------------------------------------
+#
+def Monthly_Daily_Gen_Hist1 (P_plant_PV_AC, ZT_Day_Hour, P_plant_PCU, \
+                             ZoneTime):
+
+    PV_Gen_Yr0_Daily = np.sum (P_plant_PV_AC.reshape(365,-1), axis = 1)
+
+    Gen_Hrs_Yr0_TW_PC = np.zeros(11)
+
+    PV_Gen_Yr0_Monthly = np.sum(monthorder(PV_Gen_Yr0_Daily),axis=1)
+
+    Gen_Hrs_Yr0_TW_PC [0] = np.sum((P_plant_PV_AC >= 0.01 * P_plant_PCU) * (P_plant_PV_AC <= 0.1 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [1] = np.sum((P_plant_PV_AC > 0.1 * P_plant_PCU) * (P_plant_PV_AC <= 0.2 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [2] = np.sum((P_plant_PV_AC > 0.2 * P_plant_PCU) * (P_plant_PV_AC <= 0.3 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [3] = np.sum((P_plant_PV_AC > 0.3 * P_plant_PCU) * (P_plant_PV_AC <= 0.4 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [4] = np.sum((P_plant_PV_AC > 0.4 * P_plant_PCU) * (P_plant_PV_AC <= 0.5 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [5] = np.sum((P_plant_PV_AC > 0.5 * P_plant_PCU) * (P_plant_PV_AC <= 0.6 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [6] = np.sum((P_plant_PV_AC > 0.6 * P_plant_PCU) * (P_plant_PV_AC <= 0.7 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [7] = np.sum((P_plant_PV_AC > 0.7 * P_plant_PCU) * (P_plant_PV_AC <= 0.8 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [8] = np.sum((P_plant_PV_AC > 0.8 * P_plant_PCU) * (P_plant_PV_AC <= 0.9 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [9] = np.sum((P_plant_PV_AC > 0.9 * P_plant_PCU) * (P_plant_PV_AC <= 1.0 * P_plant_PCU))
+    Gen_Hrs_Yr0_TW_PC [10] = np.sum(P_plant_PV_AC > P_plant_PCU)
+    Ag_Gen_Hrs_1to100PC_TW = np.sum(Gen_Hrs_Yr0_TW_PC)
+
+    return (PV_Gen_Yr0_Daily, PV_Gen_Yr0_Monthly, Gen_Hrs_Yr0_TW_PC, \
+            Ag_Gen_Hrs_1to100PC_TW)
+
+#---End of function which estimates monthly and daily gen and hist 1-----------
+
 
 
 
@@ -1198,3 +1230,11 @@ AnnualCUFPV, ModuleRatingPC, AnnualPRPV, AnnualSEEPV  = Degradation_Results\
                       ui.User_Assumed_Inputs.Misc_EL_PC, Pplant, PureModArea, AnGt)
 ts2=time.time_ns()
 print((ts2-ts1)/1e6,"- Degradation_Results(ms)")
+
+# Calling function which estimates the monthly and daily generation and
+# generates histogram to measure frequency of generation
+ts1=time.time_ns()
+PVGenYr0Daily, PVGenYr0Monthly, GenHrsYr0TWPC, AgGenHrs1to100PCTW \
+     = Monthly_Daily_Gen_Hist1 (PplantPVAC, ZTDayHour, PplantPCU, ZoneTime)
+ts2=time.time_ns()
+print((ts2-ts1)/1e6,"- Monthly_Daily_Gen_Hist1(ms)")

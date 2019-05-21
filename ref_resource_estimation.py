@@ -730,6 +730,79 @@ def Degradation_Results (BaseDegRate, Plant_Life, Pmod, Mod_Rating_EoY1, \
 # -------------------------- end of degradation results function --------------
 
 
+#------------------------------------------------------------------------------
+# Estimating monthly, daily aggregate gen, Histogram for frequency of gen
+#------------------------------------------------------------------------------
+#
+def Monthly_Daily_Gen_Hist1 (P_plant_PV_AC, ZT_Day_Hour, P_plant_PCU, \
+                             ZoneTime):
+
+    PV_Gen_Yr0_Daily = np.sum (P_plant_PV_AC.reshape(365,-1), axis = 1)
+    PV_Gen_Yr0_Monthly = np.zeros(12)
+    mt = np.zeros(12)
+
+    Ag_Gen_Hrs_1to100PC_TW = 0
+    Gen_Hrs_Yr0_TW_PC = np.zeros(11)
+
+    for hr in range(len(P_plant_PV_AC)):
+
+        Gen = P_plant_PV_AC [hr]
+        # modified monthly aggregate generation estimation on 6 May 2019
+        mon = ZoneTime[hr].month - 1
+        day = ZoneTime[hr].day
+        mt[mon] = day
+        PV_Gen_Yr0_Monthly[mon] = PV_Gen_Yr0_Monthly[mon] + Gen
+
+        if (Gen >= 0.01 * P_plant_PCU) and (Gen <= 0.1 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [0] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.1 * P_plant_PCU) and (Gen <= 0.2 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [1] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.2 * P_plant_PCU) and (Gen <= 0.3 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [2] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.3 * P_plant_PCU) and (Gen <= 0.4 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [3] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.4 * P_plant_PCU) and (Gen <= 0.5 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [4] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.5 * P_plant_PCU) and (Gen <= 0.6 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [5] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.6 * P_plant_PCU) and (Gen <= 0.7 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [6] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.7 * P_plant_PCU) and (Gen <= 0.8 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [7] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.8 * P_plant_PCU) and (Gen <= 0.9 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [8] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 0.9 * P_plant_PCU) and (Gen <= 1 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [9] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+        if (Gen > 1 * P_plant_PCU):
+            Gen_Hrs_Yr0_TW_PC [10] += 1
+            Ag_Gen_Hrs_1to100PC_TW += 1
+
+    return (PV_Gen_Yr0_Daily, PV_Gen_Yr0_Monthly, Gen_Hrs_Yr0_TW_PC, \
+            Ag_Gen_Hrs_1to100PC_TW)
+
+#---End of function which estimates monthly and daily gen and hist 1-----------
+
+
 
 
 
@@ -897,3 +970,11 @@ AnnualCUFPV, ModuleRatingPC, AnnualPRPV, AnnualSEEPV  = Degradation_Results\
                       ui.User_Assumed_Inputs.Misc_EL_PC, Pplant, PureModArea, AnGt)
 ts2=time.time_ns()
 print((ts2-ts1)/1e6,"- Degradation_Results(ms)")
+
+# Calling function which estimates the monthly and daily generation and
+# generates histogram to measure frequency of generation
+ts1=time.time_ns()
+PVGenYr0Daily, PVGenYr0Monthly, GenHrsYr0TWPC, AgGenHrs1to100PCTW \
+     = Monthly_Daily_Gen_Hist1 (PplantPVAC, ZTDayHour, PplantPCU, ZoneTime)
+ts2=time.time_ns()
+print((ts2-ts1)/1e6,"- Monthly_Daily_Gen_Hist1(ms)")

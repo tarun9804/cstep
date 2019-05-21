@@ -995,7 +995,7 @@ PplantPCU, OriginalPplant, PmaxDeviationNewCap, P_PCU_DCMax = \
                          ui.User_Assumed_Inputs.PCU_Vmppmax, \
                          ui.User_Assumed_Inputs.PCU_Vmppmin)
 ts2=time.time_ns()
-print((ts2-ts1)/1e3,"- Plant_Sizing_Parameters(microseconds)")
+print((ts2-ts1)/1e6,"- Plant_Sizing_Parameters(ms)")
 
 
 # Calling the function that estimates inter-row, inter-column spacing;
@@ -1025,7 +1025,7 @@ PlantArea, PackingDensity, DeviationFactor, TW, TW_DayHrs, Gt_TW = \
                        Pgen4hrWindow, GtPgen, GtPgen2hr, GtPgen4hr )
 
 ts2=time.time_ns()
-print((ts2-ts1)/1e3,"- Plant_Area_Estimation(microseconds)")
+print((ts2-ts1)/1e6,"- Plant_Area_Estimation(ms)")
 
 # Calling the function that estimates plant generation in year 0 and other
 # performance metrics
@@ -1073,7 +1073,7 @@ GenPVACTW24x365, GenPVACTW24x365T, MinGenPVACTW24x365, MaxGenPVACTW24x365, \
     MeanGenPVACTW24x365, SumGenPVACTW24x365, PCShareGenACTW24x365 \
     = Gen_vs_DayHr_Hist2 (PplantPVAC)
 ts2=time.time_ns()
-print((ts2-ts1)/1e3,"- Gen_vs_DayHr_Hist2(microseconds)")
+print((ts2-ts1)/1e6,"- Gen_vs_DayHr_Hist2(ms)")
 
 # Calling the function estimating miscellaneous parameters in the tech model
 ts1=time.time_ns()
@@ -1087,4 +1087,4 @@ AnPVGenPerAcre, AreaPgenPgen2hrFactor, AreaPgen2hrPgen4hrFactor, \
                           BaseDegCaseIndex, AnGt, AnnualGenHr,  HourlyGenPC, \
                           HourlyGtallpmod, HourlySEEPV, Gt_TW)
 ts2=time.time_ns()
-print((ts2-ts1)/1e3,"- Misc_Tech_Parameters(microseconds)")
+print((ts2-ts1)/1e6,"- Misc_Tech_Parameters(ms)")

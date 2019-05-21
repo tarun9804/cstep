@@ -5,6 +5,10 @@ git log --summary
 git add -A
 git commit -m "comments"
 git push or git push origin "branch name"
+git reset --hard
+git stash
+git checkout --<file>
+https://docs.gitlab.com/ee/topics/git/numerous_undo_possibilities_in_git/
 
 
 Command	Description

@@ -9,6 +9,14 @@ git reset --hard
 git stash
 git checkout --<file>
 https://docs.gitlab.com/ee/topics/git/numerous_undo_possibilities_in_git/
+git checkout <sha-1 of that commit>
+git checkout HEAD~4  #to go 4 commits back 
+git checkout -b new_branch HEAD~4 #go back and create new branch there
+git reset --hard 6e559cb #reset branch to the specific commit
+git add <filename> # added file to staging area
+git rm --cached <filename> #remove file from staging area
+git add .  #add all the files
+edit .gitignore *.txt,/directiry
 
 
 Command	Description

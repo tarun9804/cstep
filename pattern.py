@@ -29,20 +29,24 @@ id_8pm_4am[index_5am] = 0
 mean_data = np.zeros((330,310))
 col = 0
 key = 'dhi'
+start_day = 50
+end_day = 60
 
 
-def processArray(h5f,mean_data,key):
+def processArray(h5f,mean_data,key,x-1,y-1):
     column_chunk_size = 330
     col = 0
     j=0
+    x=x*24
+    y=y*24
     for i in range(col,total_column,column_chunk_size):
-        old_data=h5f[key][:,i:i+column_chunk_size]
-        avg = np.flip(old_data.mean(axis=0))
+        data=h5f[key][x:y,i:i+column_chunk_size]
+        avg = np.flip(data.mean(axis=0))
         mean_data.T[j]=avg
         j=j+1
 
 
-processArray(h5f,mean_data,key)
+processArray(h5f,mean_data,key,start_day,end_day)
 #print(mean_GHI)
 y = np.arange(37.95,5.05,-0.1)
 x = np.arange(67.05, 97.95, 0.1)
@@ -56,6 +60,7 @@ ax = fig.add_subplot(111, projection='3d')
 #colors = matplotlib.cm.jet(np.hypot(x,y))
 #ax.plot_surface(X,Y,mean_GHI, rstride=2, cstride=2)
 ax.contourf(X, Y, mean_data)
+
 #ax.scatter3D(X, Y, mean_GHI, c=mean_GHI, cmap='Greens');
 plt.show()
 #def rearrangeArray(data_array,days,cols):

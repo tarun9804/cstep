@@ -11,6 +11,7 @@ import h5py
 import matplotlib
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
+from mpl_toolkits.basemap import Basemap
 
 
 base_file_path = '/Users/tarun/Desktop/india_tmy.h5'
@@ -29,11 +30,13 @@ id_8pm_4am[index_5am] = 0
 mean_data = np.zeros((330,310))
 col = 0
 key = 'dhi'
-start_day = 50
-end_day = 60
+start_day = 60
+end_day = 62
 
 
-def processArray(h5f,mean_data,key,x-1,y-1):
+def processArray(h5f,mean_data,key,x,y):
+    x=x-1
+    y=y-1
     column_chunk_size = 330
     col = 0
     j=0
@@ -47,22 +50,42 @@ def processArray(h5f,mean_data,key,x-1,y-1):
 
 
 processArray(h5f,mean_data,key,start_day,end_day)
+mean_data1 = np.zeros((330,310))
+key = 'dni'
+processArray(h5f,mean_data1,key,start_day,end_day)
+out = (mean_data1/mean_data)
 #print(mean_GHI)
 y = np.arange(37.95,5.05,-0.1)
 x = np.arange(67.05, 97.95, 0.1)
 
 X, Y = np.meshgrid(x, y)
 
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+
 #ax.plot_wireframe(X,Y,mean_GHI, rstride=2, cstride=2)
 #ax.plot_wireframe(Y,X,mean_GHI, rstride=2, cstride=2)
 #colors = matplotlib.cm.jet(np.hypot(x,y))
 #ax.plot_surface(X,Y,mean_GHI, rstride=2, cstride=2)
-ax.contourf(X, Y, mean_data)
+fig, ax = plt.subplots()
+earth = Basemap(ax=ax,llcrnrlat=5.05,urcrnrlat=37.95,llcrnrlon=67.05,urcrnrlon=97.95)
+earth.drawcoastlines( linewidth=1)
+earth.drawcountries( linewidth=1)
+im=ax.contourf(X, Y, out)
+fig.colorbar(im,ax=ax)
+
+ax.set_title("High DNI Area")
+ax.plot()
+plt.show()
+
+
+
+
+
+#gdf.plot(ax=ax, color='red')
+
+#plt.show()
 
 #ax.scatter3D(X, Y, mean_GHI, c=mean_GHI, cmap='Greens');
-plt.show()
+
 #def rearrangeArray(data_array,days,cols):
 #    no_of_partion = days*4   #a day is partitioned in 4 parts
 #    temp=np.array_split(data_array,no_of_partion,axis=0)

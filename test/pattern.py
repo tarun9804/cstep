@@ -20,7 +20,12 @@ h5f = h5py.File(base_file_path,'r')
 #variable
 total_column = np.shape(h5f['ghi'])[1]  #total column
 column_chunk_size=330
-
+key='tmy_year'
+yr=h5f[key][2,:]
+idx=np.where((yr==2014)|(yr==2011)|(yr==2009)|(yr==2008)|(yr==2006)|\
+(yr==2003)|(yr==2000))
+mask=np.full(total_column,0)
+mask[idx]=1
 
 day=365
 id_8pm_4am = (np.arange(day*24)%24)//14
@@ -28,11 +33,11 @@ index_5am = np.arange(23,day*24,24)
 id_8pm_4am[index_5am] = 0
 
 
-start_day = 62
-end_day = start_day+1
+start_day = 60
+end_day = 61
 
 
-def processArray(h5f,mean_data,key,x,y):
+def processArray(h5f,mean_data,key,x,y,var):
     x=x-1
     y=y-1
     column_chunk_size = 330
@@ -41,23 +46,42 @@ def processArray(h5f,mean_data,key,x,y):
     x=x*24
     y=y*24
     for i in range(col,total_column,column_chunk_size):
-        data=h5f[key][x+6:y+6:24,i:i+column_chunk_size]
+        data=h5f[key][x:y,i:i+column_chunk_size]
+        ms=mask[i:i+column_chunk_size]
+        data=data*ms
         avg = np.flip(data.mean(axis=0))
+        var_t = np.flip(data.var(axis=0))
+        var.T[j]=var_t
         mean_data.T[j]=avg
         j=j+1
 
 mean_dhi = np.zeros((330,310))
+var_dhi = np.zeros((330,310))
 key = 'dhi'
-processArray(h5f,mean_dhi,key,start_day,end_day)
-'''
+processArray(h5f,mean_dhi,key,start_day,end_day,var_dhi)
+
 mean_dni = np.zeros((330,310))
+var_dni = np.zeros((330,310))
 key = 'dni'
-processArray(h5f,mean_dni,key,start_day,end_day)
+processArray(h5f,mean_dni,key,start_day,end_day,var_dni)
+
 mean_temp = np.zeros((330,310))
+var_temp = np.zeros((330,310))
 key = 'surface_temperature'#'dni'
-processArray(h5f,mean_temp,key,start_day,end_day)
-'''
-out = mean_dhi
+processArray(h5f,mean_temp,key,start_day,end_day,var_temp)
+
+mean_dew = np.zeros((330,310))
+var_dew = np.zeros((330,310))
+key = 'dew_point'#'dni'
+processArray(h5f,mean_dew,key,start_day,end_day,var_dew)
+
+#out = ((var_temp>30)*(mean_dhi>100)).astype(int)
+out = ((mean_dhi-mean_dni))
+#out = var_temp
+#out = (((var_dni/1000)<100)*(mean_dhi>100)).astype(int)
+#out = (mean_dni/mean_dhi)
+#out = (mean_dhi>100).astype(int)
+#out = ((mean_dhi>100)*(mean_temp>20)).astype(int)
 #out = ((mean_dni<600)*(mean_temp>30)).astype(int)
 #out =  (mean_dni/mean_dhi)*((mean_temp>30)).astype(int)#(mean_dni/mean_dhi)
 #print(mean_GHI)
@@ -81,8 +105,8 @@ fig.colorbar(im,ax=ax)
 ax.set_title("High DHI Area")
 ax.plot()
 f_name = 'file_'+str(start_day)+'.png'
-plt.savefig(f_name)
-#plt.show()
+#plt.savefig(f_name)
+plt.show()
 
 
 

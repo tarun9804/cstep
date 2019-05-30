@@ -2,3 +2,5 @@
 *.swp
 *~
 plot_india.py
+/test
+.DS_Store
